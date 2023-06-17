@@ -1,0 +1,54 @@
+server_base_url: "http://localhost:5953"
+server_port: "5953"
+server_api_key: "asdf"
+server_cookie_secret: "asdf"
+server_cookie_secret_message: "why"
+admin_username: "asdf"
+admin_password: "asdf"
+time_zone: "America/New_York"
+bolt_db_path: "./bolt.db"
+bolt_db_encryption_key: "asdf"
+stream_deck_ui:
+  serial: "asdf"
+  brightness: 30
+  global_cooldown_milliseconds: 4000
+  endpoint_hostname: "http://localhost:asdf"
+  endpoint_token: "x=asdf"
+  pages:
+    default:
+      buttons:
+        - index: 0
+          image: "icons/spotify.png"
+          mp3: "sayings/spotify.mp3"
+          single_click: "streamdeck/1"
+          triple_click: "spotify-triple"
+        - index: 1
+          image: "icons/twitch.png"
+          mp3: "sayings/twitch.mp3"
+          single_click: "streamdeck/2"
+        - index: 2
+          image: "icons/youtube.png"
+          mp3: "sayings/youtube.mp3"
+          single_click: "streamdeck/3"
+        - index: 5
+          image: "icons/disney.png"
+          mp3: "sayings/disney plus.mp3"
+          single_click: "streamdeck/4"
+        - index: 6
+          image: "icons/escape-rope.png"
+          mp3: "sayings/escape rope.mp3"
+          single_click: "streamdeck/5"
+        - index: 7
+          image: "icons/1f49a.png"
+          mp3: "sayings/I need to stretch.mp3"
+          single_click: "streamdeck/6"
+    spotify-triple:
+      buttons:
+        - index: 0
+          image: "icons/spotify.png"
+          mp3: "sayings/spotify.mp3"
+          single_click: "streamdeck/1"
+          triple_click: "default"
+        - index: 2
+          image: "icons/return.jpeg"
+          single_click: "default"
