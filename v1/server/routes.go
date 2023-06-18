@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	fiber "github.com/gofiber/fiber/v2"
 	// types "github.com/0187773933/StreamDeck/v1/types"
 )
@@ -24,7 +25,7 @@ import (
 // }
 
 func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
-	if validate_admin_api_key( context ) == false { return serve_failed_attempt( context ) }
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
 	// // fmt.Println( context.GetReqHeaders() )
 	// email_message := context.FormValue( "email_message" )
 
@@ -62,6 +63,9 @@ func ( s *Server ) SetupRoutes() {
 	// 	admin_route_group.Get( url , ServeAuthenticatedPage )
 	// }
 
-	s.FiberApp.Get( "/1" , s.PressButton )
+	button_max := 100
+	for i := 0; i < button_max; i++ {
+		s.FiberApp.Get( fmt.Sprintf( "/%d" , ( i + 1 ) ) , s.PressButton )
+	}
 
 }

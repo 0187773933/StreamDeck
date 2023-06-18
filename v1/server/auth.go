@@ -62,8 +62,16 @@ func validate_admin_cookie( context *fiber.Ctx ) ( result bool ) {
 	return
 }
 
-func validate_admin_api_key( context *fiber.Ctx ) ( result bool ) {
+func validate_admin( context *fiber.Ctx ) ( result bool ) {
 	result = false
+	admin_cookie := context.Cookies( "the-masters-closet-admin" )
+	if admin_cookie != "" {
+		admin_cookie_value := encryption.SecretBoxDecrypt( GlobalConfig.BoltDBEncryptionKey , admin_cookie )
+		if admin_cookie_value == GlobalConfig.ServerCookieAdminSecretMessage {
+			result = true
+			return
+		}
+	}
 	admin_api_key_header := context.Get( "key" )
 	if admin_api_key_header != "" {
 		if admin_api_key_header == GlobalConfig.ServerAPIKey {
@@ -78,9 +86,5 @@ func validate_admin_api_key( context *fiber.Ctx ) ( result bool ) {
 			return
 		}
 	}
-	// admin_cookie_value := encryption.SecretBoxDecrypt( GlobalConfig.BoltDBEncryptionKey , admin_cookie )
-	// if admin_cookie_value != GlobalConfig.ServerCookieAdminSecretMessage { fmt.Println( "admin cookie secret message was not equal" ); return }
-	// if admin_api_key != GlobalConfig.ServerAPIKey { fmt.Println( "api key header was not equal" ); return }
-	// result = true
 	return
 }
