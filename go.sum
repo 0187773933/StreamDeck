@@ -1,3 +1,7 @@
+4d63.com/embedfiles v0.0.0-20190311033909-995e0740726f h1:oyYjGRBNq1TxAIG8aHqtxlvqUfzdZf+MbcRb/oweNfY=
+4d63.com/embedfiles v0.0.0-20190311033909-995e0740726f/go.mod h1:HxEsUxoVZyRxsZML/S6e2xAuieFMlGO0756ncWx1aXE=
+4d63.com/tz v1.2.0 h1:EpJt060xY+M+M0Wj8btz+THdOJbSxj4i8jhVQP3Wr0U=
+4d63.com/tz v1.2.0/go.mod h1:SHGqVdL7hd2ZaX2T9uEiOZ/OFAUfCCLURdLPJsd8ZNs=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=

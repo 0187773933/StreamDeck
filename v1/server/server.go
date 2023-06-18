@@ -9,16 +9,16 @@ import (
 	favicon "github.com/gofiber/fiber/v2/middleware/favicon"
 	// try "github.com/manucorporat/try"
 	types "github.com/0187773933/StreamDeck/v1/types"
-	routes "github.com/0187773933/StreamDeck/v1/server/routes"
+	ui_wrapper "github.com/0187773933/StreamDeck/v1/ui"
 	// "os"
-	// log "github.com/0187773933/StreamDeck/v1/log"
 )
 
 var GlobalConfig *types.ConfigFile
 
 type Server struct {
-	FiberApp *fiber.App `json:"fiber_app"`
-	Config types.ConfigFile `json:"config"`
+	FiberApp *fiber.App `yaml:"fiber_app"`
+	UI *ui_wrapper.StreamDeckUI `yaml:"ui"`
+	Config types.ConfigFile `yaml:"config"`
 }
 
 func request_logging_middleware( context *fiber.Ctx ) ( error ) {
@@ -28,13 +28,14 @@ func request_logging_middleware( context *fiber.Ctx ) ( error ) {
 	// log_message := fmt.Sprintf( "%s === %s === %s === %s" , time_string , GlobalConfig.FingerPrint , context.Method() , context.Path() )
 	log_message := fmt.Sprintf( "%s === %s" , context.Method() , context.Path() )
 	// fmt.Println( log_message )
-	log.Println( log_message )
+	fmt.Println( log_message )
 	return context.Next()
 }
 
-func New( config types.ConfigFile ) ( server Server ) {
+func New( config types.ConfigFile , ui *ui_wrapper.StreamDeckUI  ) ( server Server ) {
 
 	server.FiberApp = fiber.New()
+	server.UI = ui
 	server.Config = config
 	GlobalConfig = &config
 
@@ -45,7 +46,7 @@ func New( config types.ConfigFile ) ( server Server ) {
 	server.FiberApp.Use( favicon.New() )
 	// server.FiberApp.Get( "/favicon.ico" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/favicon.ico" ) } )
 	server.FiberApp.Use( rate_limiter.New( rate_limiter.Config{
-		Max: 30 ,
+		Max: 3 ,
 		Expiration: ( 1 * time.Second ) ,
 		// Next: func( c *fiber.Ctx ) bool {
 		// 	ip := c.IP()
@@ -74,26 +75,22 @@ func New( config types.ConfigFile ) ( server Server ) {
 	}))
 	// server.FiberApp.Static( "/cdn" , "./v1/server/cdn" )
 	// just white-list static stuff
-	server.FiberApp.Get( "/logo.png" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/logo.png" ) } )
-	server.FiberApp.Get( "/cdn/api.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/api.js" ) } )
-	server.FiberApp.Get( "/cdn/utils.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/utils.js" ) } )
-	server.FiberApp.Get( "/cdn/ui.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/ui.js" ) } )
+	// server.FiberApp.Get( "/logo.png" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/logo.png" ) } )
+	// server.FiberApp.Get( "/cdn/api.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/api.js" ) } )
+	// server.FiberApp.Get( "/cdn/utils.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/utils.js" ) } )
+	// server.FiberApp.Get( "/cdn/ui.js" , func( context *fiber.Ctx ) ( error ) { return context.SendFile( "./v1/server/cdn/ui.js" ) } )
 	server.SetupRoutes()
 	server.FiberApp.Get( "/*" , func( context *fiber.Ctx ) ( error ) { return context.Redirect( "/" ) } )
 	return
 }
 
-func ( s *Server ) SetupRoutes() {
-	user_routes.RegisterRoutes( s.FiberApp , &s.Config )
-	admin_routes.RegisterRoutes( s.FiberApp , &s.Config )
-}
-
 func ( s *Server ) Start() {
 	fmt.Println( "\n" )
-	log.PrintfConsole( "Listening on http://localhost:%s\n" , s.Config.ServerPort )
+	fmt.Printf( "Listening on http://localhost:%s\n" , s.Config.ServerPort )
 	fmt.Printf( "Admin Login @ http://localhost:%s/admin/login\n" , s.Config.ServerPort )
 	fmt.Printf( "Admin Username === %s\n" , s.Config.AdminUsername )
 	fmt.Printf( "Admin Password === %s\n" , s.Config.AdminPassword )
+	fmt.Printf( "Admin API Key === %s\n" , s.Config.ServerAPIKey )
 	s.FiberApp.Listen( fmt.Sprintf( ":%s" , s.Config.ServerPort ) )
 }
 

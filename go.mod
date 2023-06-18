@@ -3,6 +3,7 @@ module github.com/0187773933/StreamDeck
 go 1.19
 
 require (
+	4d63.com/tz v1.2.0
 	github.com/dh1tw/hid v1.6.0
 	github.com/dh1tw/streamdeck v0.1.10
 	github.com/gofiber/fiber/v2 v2.46.0
@@ -17,6 +18,7 @@ require (
 )
 
 require (
+	4d63.com/embedfiles v0.0.0-20190311033909-995e0740726f // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/disintegration/gift v1.2.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
