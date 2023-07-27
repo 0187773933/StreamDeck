@@ -37,6 +37,7 @@ func main() {
 	ui.AddDevice()
 	defer ui.Device.Close()
 	ui.ActivePageID = "default"
+	fmt.Println( ui )
 	// // ui.ActivePageID = "spotify-triple"
 	ui.Render()
 	go ui.WatchKeys()

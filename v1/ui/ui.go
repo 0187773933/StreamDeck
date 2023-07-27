@@ -3,27 +3,24 @@ package ui
 import (
 	"os"
 	"io"
-	"path/filepath"
+	// "path/filepath"
 	"fmt"
 	"time"
+	// "net/url"
+	"os/exec"
+	"strings"
 	streamdeck_wrapper "github.com/muesli/streamdeck"
 	"image"
 	"image/draw"
 	_ "image/jpeg"
 	_ "image/png"
 	resize "github.com/nfnt/resize"
-	// "reflect"
 	ioutil "io/ioutil"
 	yaml "gopkg.in/yaml.v2"
 	http "net/http"
 	oto "github.com/hajimehoshi/oto"
 	mp3 "github.com/hajimehoshi/go-mp3"
 	try "github.com/manucorporat/try"
-	// utils "github.com/0187773933/StreamDeck/v1//utils"
-	// mapstructure "github.com/mitchellh/mapstructure"
-	// types "github.com/0187773933/StreamDeck/v1//types"
-	// deepcopier "github.com/ulule/deepcopier"
-	// utils "github.com/0187773933/StreamDeck/v1//utils"
 )
 
 // https://github.com/muesli/streamdeck/blob/master/streamdeck.go#L112
@@ -61,16 +58,24 @@ func get_json( url string ) ( result string ) {
 type Button struct {
 	PressCount int `yaml:"-"`
 	LastPressTime time.Time `yaml:"-"`
+	// Toggled bool `yamm:"toggled"`
 	Timer *time.Timer `yaml:"-"`
 	Index uint8 `yaml:"index"`
 	Image string `yaml:"image"`
 	MP3 string `yaml:"mp3"`
+	Id string `yaml:"_"`
 	SingleClick string `yaml:"single_click"`
 	DoubleClick string `yaml:"double_click"`
 	TripleClick string `yaml:"triple_click"`
+	Toggle string `yaml:"toggle"`
+}
+
+type PageButton struct {
+	Index uint8 `yaml:"index"`
+	Id string `yaml:"id"`
 }
 type StreamDeckUIPage struct {
-	Buttons []Button
+	Buttons []PageButton
 }
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
@@ -81,6 +86,8 @@ type StreamDeckUI struct {
 	EndpointHostName string `yaml:"endpoint_hostname"`
 	EndpointToken string `yaml:"endpoint_token"`
 	Pages map[string]StreamDeckUIPage `yaml:"pages"`
+	Buttons map[string]Button `yaml:"buttons"`
+	LoadedButtonImages map[uint8]string `yaml:"-"`
 }
 
 func ( ui *StreamDeckUI ) AddDevice() {
@@ -98,6 +105,11 @@ func ( ui *StreamDeckUI ) AddDevice() {
 	// ui.Device.Clear()
 }
 func ( ui *StreamDeckUI ) set_image( button_index uint8 , file_path string ) {
+	if ui.LoadedButtonImages[ button_index ] != file_path {
+		ui.LoadedButtonImages[ button_index ] = file_path
+	} else {
+		return
+	}
 	image_data := get_image_data( file_path )
 	err := ui.Device.SetImage( button_index , image_data )
 	if err != nil {
@@ -111,46 +123,53 @@ func ( ui *StreamDeckUI ) isPageID( test string ) ( result bool ) {
 	result = exists
 	return
 }
+
+func ( ui *StreamDeckUI ) is_endpoint_url( input_url string ) ( result bool ) {
+	// _ , err := url.ParseRequestURI( input_url )
+	// return err == nil
+	result = false
+	if strings.Contains( input_url , ui.EndpointHostName ) { result = true }
+	return
+}
+
+
+func ( ui *StreamDeckUI ) btn_num_to_page_button( button_index uint8 ) ( result Button ) {
+	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
+		if button.Index == button_index {
+			result = ui.Buttons[ button.Id ]
+			result.Id = button.Id
+			return
+		}
+	}
+	return
+}
+
 func ( ui *StreamDeckUI ) Clear() { ui.Device.Clear() }
 
 func ( ui *StreamDeckUI ) Render() {
-	ui.Device.Clear()
-	CWD , _ := os.Getwd()
+	// ui.Device.Clear()
 	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
-		image_path := filepath.Join( CWD , button.Image )
-		// fmt.Println( image_path )
-		ui.set_image( button.Index , image_path )
-
+		btn := ui.Buttons[ button.Id ]
+		ui.set_image( button.Index , btn.Image )
 		// Initialize Button State
-		button.PressCount = 0
-		button.LastPressTime = time.Now()
+		btn.PressCount = 0
+		btn.LastPressTime = time.Now()
+		ui.Buttons[ button.Id ] = btn
 	}
 }
 
-func ( ui *StreamDeckUI ) WatchKeys() {
+func (ui *StreamDeckUI) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
 		fmt.Printf( "Error reading keys: %v\n" , err )
 		os.Exit( 1 )
 	}
 
-	// timers := make( []*time.Timer , len( ui.Pages[ ui.ActivePageID ].Buttons ) )
 	for key := range key_channel {
-		buttonIndex := -1
-		for i, button := range ui.Pages[ui.ActivePageID].Buttons {
-			if button.Index == key.Index {
-				buttonIndex = i
-				break
-			}
-		}
-		if buttonIndex == -1 {
-			fmt.Printf("Button with index %d does not exist\n", key.Index)
-			continue
-		}
-		button := &ui.Pages[ui.ActivePageID].Buttons[buttonIndex]
+		button := ui.btn_num_to_page_button(key.Index)
 		if key.Pressed {
 			now := time.Now()
-			if now.Sub( button.LastPressTime ) > time.Second {
+			if now.Sub(button.LastPressTime) > time.Second {
 				button.PressCount = 0
 			}
 			button.PressCount++
@@ -168,57 +187,85 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 				buttonPressCount := button.PressCount
 				switch buttonPressCount {
 					case 1:
-						if button.SingleClick == "" { break }
+						// fmt.Println( "Single Click" )
+						if button.SingleClick == "" { fmt.Println( "Single Click not Registered" ); break }
 						fmt.Println( button.Index , "Single Click" , button.SingleClick )
 						if ui.isPageID( button.SingleClick ) {
 							ui.ActivePageID = button.SingleClick
 							ui.Render()
 							break;
-						} else {
+						} else if ui.is_endpoint_url( button.SingleClick ) {
 							if button.MP3 != "" {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
 							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+						} else {
+							fmt.Println( "we are exec-ing this ????" )
+							fmt.Println( button.SingleClick )
+							cmd := exec.Command( "bash" , "-c" , button.SingleClick )
+							cmd.Start()
 						}
 					case 2:
-						if button.DoubleClick == "" { break }
+						// fmt.Println( "Double Click" )
+						if button.DoubleClick == "" { fmt.Println( "Double Click not Registered" ); break }
 						fmt.Println( button.Index , "Double Click" , button.DoubleClick )
 						if ui.isPageID( button.DoubleClick ) {
 							ui.ActivePageID = button.DoubleClick
 							ui.Render()
 							break;
-						} else {
+						} else if ui.is_endpoint_url( button.DoubleClick ) {
 							if button.MP3 != "" {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
 							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.DoubleClick , ui.EndpointToken ) )
+						} else {
+							fmt.Println( "we are exec-ing this ????" )
+							fmt.Println( button.DoubleClick )
+							cmd := exec.Command( "bash" , "-c" , button.DoubleClick )
+							cmd.Start()
 						}
 					case 3:
-						if button.TripleClick == "" { break }
+						// fmt.Println( "Triple Click" )
+						if button.TripleClick == "" { fmt.Println( "Triple Click not Registered" ); break }
 						fmt.Println( button.Index , "Triple Click" , button.TripleClick )
 						if ui.isPageID( button.TripleClick ) {
 							ui.ActivePageID = button.TripleClick
 							ui.Render()
 							break;
-						} else {
+						} else if ui.is_endpoint_url( button.TripleClick ) {
 							if button.MP3 != "" {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
 							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.TripleClick , ui.EndpointToken ) )
+						} else {
+							fmt.Println( "we are exec-ing this ????" )
+							fmt.Println( button.TripleClick )
+							cmd := exec.Command( "bash" , "-c" , button.TripleClick )
+							cmd.Start()
 						}
 				}
 				button.PressCount = 0
 			})
 
+			// Update the button in the ui.Buttons map
+			if button.Toggle != "" {
+				for i , x_button := range ui.Pages[ ui.ActivePageID ].Buttons {
+					if x_button.Index == key.Index {
+						ui.Pages[ ui.ActivePageID ].Buttons[ i ].Id = button.Toggle
+						break
+					}
+				}
+				ui.Render()
+			}
+			ui.Buttons[button.Id] = button
 		} else {
 			// when the key is released
 			// Just ignore this event
 		}
 	}
-
 }
 
 func ( ui *StreamDeckUI ) PlayMP3( file_path string ) {
@@ -249,27 +296,7 @@ func NewStreamDeckUI( file_path string ) ( result *StreamDeckUI ) {
 func NewStreamDeckUIFromInterface( config *interface{} ) ( result *StreamDeckUI ) {
 	intermediate , _ := yaml.Marshal( config )
 	error := yaml.Unmarshal( intermediate , &result )
+	result.LoadedButtonImages = make(map[uint8]string)
 	if error != nil { panic( error ) }
 	return
 }
-
-
-// func main() {
-// 	// utils.GenerateNewKeys()
-// 	config := utils.ParseConfig( "./config.yaml" )
-// 	// ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
-// 	// ui := &StreamDeckUI{}
-// 	// // deepcopier.Copy( config.StreamDeckUI ).To( ui )
-// 	fmt.Println( config )
-// 	fmt.Println( "???" )
-// 	// fmt.Println( ui )
-
-
-// 	// ui := ui_wrapper.NewStreamDeckUI( &config.StreamDeckUI )
-// 	// ui.AddDevice()
-// 	// defer ui.Device.Close()
-// 	// ui.ActivePageID = "default"
-// 	// // ui.ActivePageID = "spotify-triple"
-// 	// ui.Render()
-// 	// ui.WatchKeys()
-// }
