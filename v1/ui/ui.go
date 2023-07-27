@@ -105,11 +105,6 @@ func ( ui *StreamDeckUI ) AddDevice() {
 	// ui.Device.Clear()
 }
 func ( ui *StreamDeckUI ) set_image( button_index uint8 , file_path string ) {
-	if ui.LoadedButtonImages[ button_index ] != file_path {
-		ui.LoadedButtonImages[ button_index ] = file_path
-	} else {
-		return
-	}
 	image_data := get_image_data( file_path )
 	err := ui.Device.SetImage( button_index , image_data )
 	if err != nil {
@@ -146,6 +141,22 @@ func ( ui *StreamDeckUI ) btn_num_to_page_button( button_index uint8 ) ( result 
 
 func ( ui *StreamDeckUI ) Clear() { ui.Device.Clear() }
 
+func ( ui *StreamDeckUI ) RenderSoft() {
+	// ui.Device.Clear()
+	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
+		btn := ui.Buttons[ button.Id ]
+		if ui.LoadedButtonImages[ button.Index ] != btn.Image {
+			ui.LoadedButtonImages[ button.Index ] = btn.Image
+		} else {
+			break;
+		}
+		ui.set_image( button.Index , btn.Image )
+		// Initialize Button State
+		btn.PressCount = 0
+		btn.LastPressTime = time.Now()
+		ui.Buttons[ button.Id ] = btn
+	}
+}
 func ( ui *StreamDeckUI ) Render() {
 	// ui.Device.Clear()
 	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
@@ -157,6 +168,8 @@ func ( ui *StreamDeckUI ) Render() {
 		ui.Buttons[ button.Id ] = btn
 	}
 }
+
+
 
 func (ui *StreamDeckUI) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
@@ -192,6 +205,7 @@ func (ui *StreamDeckUI) WatchKeys() {
 						fmt.Println( button.Index , "Single Click" , button.SingleClick )
 						if ui.isPageID( button.SingleClick ) {
 							ui.ActivePageID = button.SingleClick
+							ui.Clear()
 							ui.Render()
 							break;
 						} else if ui.is_endpoint_url( button.SingleClick ) {
@@ -212,6 +226,7 @@ func (ui *StreamDeckUI) WatchKeys() {
 						fmt.Println( button.Index , "Double Click" , button.DoubleClick )
 						if ui.isPageID( button.DoubleClick ) {
 							ui.ActivePageID = button.DoubleClick
+							ui.Clear()
 							ui.Render()
 							break;
 						} else if ui.is_endpoint_url( button.DoubleClick ) {
@@ -232,6 +247,7 @@ func (ui *StreamDeckUI) WatchKeys() {
 						fmt.Println( button.Index , "Triple Click" , button.TripleClick )
 						if ui.isPageID( button.TripleClick ) {
 							ui.ActivePageID = button.TripleClick
+							ui.Clear()
 							ui.Render()
 							break;
 						} else if ui.is_endpoint_url( button.TripleClick ) {
@@ -258,7 +274,7 @@ func (ui *StreamDeckUI) WatchKeys() {
 						break
 					}
 				}
-				ui.Render()
+				ui.RenderSoft()
 			}
 			ui.Buttons[button.Id] = button
 		} else {
