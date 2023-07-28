@@ -34,11 +34,15 @@ func main() {
 
 	// 1.) Setup StreamDeck
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
-	ui.AddDevice()
+	ui.Connect()
 	defer ui.Device.Close()
-	ui.ActivePageID = "default"
+	if len( os.Args ) > 2 {
+		ui.ActivePageID = os.Args[ 2 ]
+	} else {
+		ui.ActivePageID = "default"
+	}
 	fmt.Println( ui )
-	// // ui.ActivePageID = "spotify-triple"
+	ui.Clear()
 	ui.Render()
 	go ui.WatchKeys()
 

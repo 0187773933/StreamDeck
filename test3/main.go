@@ -86,6 +86,9 @@ func ( ui *StreamDeckUI ) AddDevice() {
 		fmt.Println( "No Devices Found" )
 		os.Exit( 1 )
 	}
+	for i , dev := range devs {
+		fmt.Println( i , dev )
+	}
 	ui.Device = devs[ 0 ]
 	open_error := ui.Device.Open()
 	if open_error != nil {

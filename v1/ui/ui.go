@@ -8,6 +8,7 @@ import (
 	"time"
 	// "net/url"
 	"os/exec"
+	// "reflect"
 	"strings"
 	streamdeck_wrapper "github.com/muesli/streamdeck"
 	"image"
@@ -90,11 +91,17 @@ type StreamDeckUI struct {
 	LoadedButtonImages map[uint8]string `yaml:"-"`
 }
 
-func ( ui *StreamDeckUI ) AddDevice() {
+func ( ui *StreamDeckUI ) Connect() {
 	devs , _ := streamdeck_wrapper.Devices()
 	if len( devs ) < 1 {
 		fmt.Println( "No Devices Found" )
 		os.Exit( 1 )
+	}
+	for _ , dev := range devs {
+		if dev.Serial == ui.Serial {
+			ui.Device = dev
+			break
+		}
 	}
 	ui.Device = devs[ 0 ]
 	open_error := ui.Device.Open()
@@ -169,9 +176,7 @@ func ( ui *StreamDeckUI ) Render() {
 	}
 }
 
-
-
-func (ui *StreamDeckUI) WatchKeys() {
+func ( ui *StreamDeckUI ) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
 		fmt.Printf( "Error reading keys: %v\n" , err )
