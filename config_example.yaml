@@ -1,7 +1,7 @@
 server_base_url: "http://localhost:5953"
 server_port: "5953"
 server_api_key: "asdf"
-server_cookie_secret: "asdf"
+server_cookie_secret: "asdf="
 server_cookie_secret_message: "why"
 admin_username: "asdf"
 admin_password: "asdf"
@@ -12,43 +12,74 @@ stream_deck_ui:
   serial: "asdf"
   brightness: 30
   global_cooldown_milliseconds: 4000
-  endpoint_hostname: "http://localhost:asdf"
+  endpoint_hostname: "http://localhost:9371"
   endpoint_token: "x=asdf"
+  buttons:
+    spotify:
+      image: "icons/spotify.png"
+      mp3: "sayings/spotify.mp3"
+      single_click: "http://localhost:9371/streamdeck/1"
+      triple_click: "spotify-triple"
+    spotify-triple:
+      image: "icons/spotify.png"
+      mp3: "sayings/spotify.mp3"
+      single_click: "http://localhost:9371/streamdeck/1"
+      triple_click: "default"
+    twitch:
+      image: "icons/twitch.png"
+      mp3: "sayings/twitch.mp3"
+      single_click: "http://localhost:9371/streamdeck/2"
+    youtube:
+      image: "icons/youtube.png"
+      mp3: "sayings/youtube.mp3"
+      single_click: "http://localhost:9371/streamdeck/3"
+    disney:
+      image: "icons/disney.png"
+      mp3: "sayings/disney plus.mp3"
+      single_click: "http://localhost:9371/streamdeck/4"
+    escape-rope:
+      image: "icons/escape-rope.png"
+      mp3: "sayings/escape rope.mp3"
+      single_click: "http://localhost:9371/streamdeck/5"
+    stretch:
+      image: "icons/1f49a.png"
+      mp3: "sayings/I need to stretch.mp3"
+      single_click: "http://localhost:9371/streamdeck/6"
+    return:
+      image: "icons/return.jpeg"
+      single_click: "default"
+    lights-on:
+      image: "icons/lights-off.png"
+      single_click: "/usr/local/bin/lon"
+      # toggle: "lights-off"
+    lights-off:
+      image: "icons/lights-off.png"
+      single_click: "/usr/local/bin/loe"
+      # toggle: "lights-on"
   pages:
     default:
       buttons:
         - index: 0
-          image: "icons/spotify.png"
-          mp3: "sayings/spotify.mp3"
-          single_click: "streamdeck/1"
-          triple_click: "spotify-triple"
+          id: "spotify"
         - index: 1
-          image: "icons/twitch.png"
-          mp3: "sayings/twitch.mp3"
-          single_click: "streamdeck/2"
+          id: "twitch"
         - index: 2
-          image: "icons/youtube.png"
-          mp3: "sayings/youtube.mp3"
-          single_click: "streamdeck/3"
+          id: "youtube"
         - index: 5
-          image: "icons/disney.png"
-          mp3: "sayings/disney plus.mp3"
-          single_click: "streamdeck/4"
+          id: "disney"
         - index: 6
-          image: "icons/escape-rope.png"
-          mp3: "sayings/escape rope.mp3"
-          single_click: "streamdeck/5"
+          id: "escape-rope"
         - index: 7
-          image: "icons/1f49a.png"
-          mp3: "sayings/I need to stretch.mp3"
-          single_click: "streamdeck/6"
+          id: "stretch"
+    lights:
+      buttons:
+        - index: 8
+          id: "lights-on"
+        - index: 9
+          id: "lights-off"
     spotify-triple:
       buttons:
         - index: 0
-          image: "icons/spotify.png"
-          mp3: "sayings/spotify.mp3"
-          single_click: "streamdeck/1"
-          triple_click: "default"
+          id: "spotify-triple"
         - index: 2
-          image: "icons/return.jpeg"
-          single_click: "default"
+          id: "return"
