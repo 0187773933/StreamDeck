@@ -14,6 +14,4 @@
 	- mute / toggle audio responses
 	- get logs
 - global cooldown stuff
-- add option for double and triple clicks to be button-ids
 - add persistant state/memory/db besides config stuff
-- make it actually link with streameck serial , not just first device
