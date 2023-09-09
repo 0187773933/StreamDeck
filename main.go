@@ -39,18 +39,15 @@ func main() {
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
 	ui.Connect()
 	defer ui.Device.Close()
+	var active_page_id string
 	if len( os.Args ) > 2 {
-		ui.ActivePageID = os.Args[ 2 ]
+		active_page_id = os.Args[ 2 ]
 	} else {
-		ui.ActivePageID = "default"
+		active_page_id = "default"
 	}
 	db , _ := bolt_api.Open( config.BoltDBPath , 0600 , &bolt_api.Options{ Timeout: ( 3 * time.Second ) } )
 	ui.DB = db
-	ui.DB.Update( func( tx *bolt_api.Tx ) error {
-		tmp2_bucket , _ := tx.CreateBucketIfNotExists( []byte( "tmp2" ) )
-		tmp2_bucket.Put( []byte( "active-page-id" ) , []byte( ui.ActivePageID ) )
-		return nil
-	})
+	ui.SetActivePageID( active_page_id )
 	fmt.Println( ui )
 	ui.Clear()
 	ui.Render()
