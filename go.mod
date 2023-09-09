@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	4d63.com/tz v1.2.0
+	github.com/boltdb/bolt v1.3.1
 	github.com/dh1tw/hid v1.6.0
 	github.com/dh1tw/streamdeck v0.1.10
 	github.com/gofiber/fiber/v2 v2.46.0

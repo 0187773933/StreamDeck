@@ -5,6 +5,7 @@ import (
 	fiber "github.com/gofiber/fiber/v2"
 	strconv "strconv"
 	// types "github.com/0187773933/StreamDeck/v1/types"
+	bolt_api "github.com/boltdb/bolt"
 )
 
 // var ui_html_pages = map[ string ]string {
@@ -27,23 +28,6 @@ import (
 
 func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
 	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
-	// // fmt.Println( context.GetReqHeaders() )
-	// email_message := context.FormValue( "email_message" )
-
-	// db , _ := bolt_api.Open( GlobalConfig.BoltDBPath , 0600 , &bolt_api.Options{ Timeout: ( 3 * time.Second ) } )
-	// defer db.Close()
-	// db.View( func( tx *bolt_api.Tx ) error {
-	// 	bucket := tx.Bucket( []byte( "users" ) )
-	// 	bucket.ForEach( func( uuid , value []byte ) error {
-	// 		var viewed_user user.User
-	// 		decrypted_bucket_value := encryption.ChaChaDecryptBytes( GlobalConfig.BoltDBEncryptionKey , value )
-	// 		json.Unmarshal( decrypted_bucket_value , &viewed_user )
-	// 		if viewed_user.EmailAddress == "" { return nil; }
-	// 		fmt.Printf( "%s === %s\n" , "from@example.com" , viewed_user.EmailAddress )
-	// 		return nil
-	// 	})
-	// 	return nil
-	// })
 
 	// s.UI.ActivePageID = "spotify-triple"
 	// s.UI.Render()
@@ -69,8 +53,29 @@ func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
 	}
 
 	return context.JSON( fiber.Map{
-		"route": "/some-button" ,
+		"route": "/:button" ,
 		"type": button_type ,
+		"id": context.Params( "button" ) ,
+		"result": "success" ,
+	})
+}
+
+func ( s *Server ) RenderPage( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	page_id := context.Params( "id" )
+	s.UI.Clear()
+
+	// s.UI.SetActivePageID( string( page_id ) )
+	// race condition ????
+	s.UI.DB.Update( func( tx *bolt_api.Tx ) error {
+		tmp2_bucket , _ := tx.CreateBucketIfNotExists( []byte( "tmp2" ) )
+		tmp2_bucket.Put( []byte( "active-page-id" ) , []byte( page_id ) )
+		return nil
+	})
+	s.UI.Render()
+	return context.JSON( fiber.Map{
+		"route": "/page/:id" ,
+		"id": page_id ,
 		"result": "success" ,
 	})
 }
@@ -86,5 +91,6 @@ func ( s *Server ) SetupRoutes() {
 	// }
 
 	s.FiberApp.Get( "/:button" , s.PressButton )
+	s.FiberApp.Get( "/page/:id" , s.RenderPage )
 
 }

@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 	"os/signal"
 	"syscall"
 	"path/filepath"
 	utils "github.com/0187773933/StreamDeck/v1/utils"
 	ui_wrapper "github.com/0187773933/StreamDeck/v1/ui"
 	server "github.com/0187773933/StreamDeck/v1/server"
+	bolt_api "github.com/boltdb/bolt"
 )
 
 var s server.Server
@@ -21,6 +23,7 @@ func SetupCloseHandler() {
 		fmt.Println( "\r- Ctrl+C pressed in Terminal" )
 		fmt.Println( "Shutting Down StreamDeck Server" )
 		s.FiberApp.Shutdown()
+		s.UI.DB.Close()
 		os.Exit( 0 )
 	}()
 }
@@ -41,6 +44,13 @@ func main() {
 	} else {
 		ui.ActivePageID = "default"
 	}
+	db , _ := bolt_api.Open( config.BoltDBPath , 0600 , &bolt_api.Options{ Timeout: ( 3 * time.Second ) } )
+	ui.DB = db
+	ui.DB.Update( func( tx *bolt_api.Tx ) error {
+		tmp2_bucket , _ := tx.CreateBucketIfNotExists( []byte( "tmp2" ) )
+		tmp2_bucket.Put( []byte( "active-page-id" ) , []byte( ui.ActivePageID ) )
+		return nil
+	})
 	fmt.Println( ui )
 	ui.Clear()
 	ui.Render()

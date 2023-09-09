@@ -4,6 +4,8 @@
 4d63.com/tz v1.2.0/go.mod h1:SHGqVdL7hd2ZaX2T9uEiOZ/OFAUfCCLURdLPJsd8ZNs=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
+github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
+github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/dh1tw/hid v1.6.0 h1:k7iuYfInCZqKUpkwse5AAq1poF33/45eflj3ptUpU2w=
 github.com/dh1tw/hid v1.6.0/go.mod h1:hmbsh7igMs6/1HZmCh/iFYm/Wfr2blXzJ63a0nMXVIc=

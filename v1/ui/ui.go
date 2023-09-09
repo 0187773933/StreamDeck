@@ -22,6 +22,7 @@ import (
 	oto "github.com/hajimehoshi/oto"
 	mp3 "github.com/hajimehoshi/go-mp3"
 	try "github.com/manucorporat/try"
+	bolt_api "github.com/boltdb/bolt"
 )
 
 // https://github.com/muesli/streamdeck/blob/master/streamdeck.go#L112
@@ -89,6 +90,7 @@ type StreamDeckUI struct {
 	Pages map[string]StreamDeckUIPage `yaml:"pages"`
 	Buttons map[string]Button `yaml:"buttons"`
 	LoadedButtonImages map[uint8]string `yaml:"-"`
+	DB *bolt_api.DB `yaml:"-"`
 }
 
 func ( ui *StreamDeckUI ) Connect() {
@@ -120,6 +122,11 @@ func ( ui *StreamDeckUI ) set_image( button_index uint8 , file_path string ) {
 	}
 }
 
+func ( ui *StreamDeckUI ) SetActivePageID( page_id string ) {
+	ui.ActivePageID = ""
+	ui.ActivePageID = page_id
+}
+
 func ( ui *StreamDeckUI ) isPageID( test string ) ( result bool ) {
 	_ , exists := ui.Pages[ test ]
 	result = exists
@@ -134,9 +141,19 @@ func ( ui *StreamDeckUI ) is_endpoint_url( input_url string ) ( result bool ) {
 	return
 }
 
+func ( ui *StreamDeckUI ) GetActivePageID() ( result string ) {
+	ui.DB.View( func( tx *bolt_api.Tx ) error {
+		tmp2_bucket := tx.Bucket( []byte( "tmp2" ) )
+		bucket_result := tmp2_bucket.Get( []byte( "active-page-id" ) )
+		result = string( bucket_result )
+		return nil
+	})
+	return
+}
 
 func ( ui *StreamDeckUI ) BtnNumToPageButton( button_index uint8 ) ( result Button ) {
-	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
+	page_id := ui.GetActivePageID()
+	for _ , button := range ui.Pages[ page_id ].Buttons {
 		if button.Index == button_index {
 			result = ui.Buttons[ button.Id ]
 			result.Id = button.Id
@@ -177,7 +194,9 @@ func ( ui *StreamDeckUI ) RenderSoft() {
 }
 func ( ui *StreamDeckUI ) Render() {
 	// ui.Device.Clear()
-	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
+	page_id := ui.GetActivePageID()
+	fmt.Println( "Active Page ID ===" , page_id )
+	for _ , button := range ui.Pages[ page_id ].Buttons {
 		btn := ui.Buttons[ button.Id ]
 		ui.set_image( button.Index , btn.Image )
 		// Initialize Button State
@@ -237,6 +256,7 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 
 
 func ( ui *StreamDeckUI ) WatchKeys() {
+	fmt.Println("WatchKeys: Initial ActivePageID:", ui.ActivePageID)
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
 		fmt.Printf( "Error reading keys: %v\n" , err )
@@ -244,7 +264,9 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 	}
 
 	for key := range key_channel {
+		fmt.Println("WatchKeys: Loop Start ActivePageID:", ui.ActivePageID)
 		button := ui.BtnNumToPageButton(key.Index)
+		fmt.Println("WatchKeys: After BtnNumToPageButton ActivePageID:", ui.ActivePageID)
 		if key.Pressed {
 			now := time.Now()
 			if now.Sub(button.LastPressTime) > time.Second {
@@ -266,7 +288,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 				switch buttonPressCount {
 					case 1:
 						// fmt.Println( "Single Click" )
-						if button.SingleClick == "" { fmt.Println( "Single Click not Registered" ); break }
+						if button.SingleClick == "" { fmt.Println( "??? Single Click not Registered" , button ); break }
 						fmt.Println( button.Index , "Single Click" , button.SingleClick )
 						if ui.isPageID( button.SingleClick ) {
 							ui.ActivePageID = button.SingleClick
@@ -346,6 +368,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 			// when the key is released
 			// Just ignore this event
 		}
+		fmt.Println("WatchKeys: Loop End ActivePageID:", ui.ActivePageID)
 	}
 }
 
