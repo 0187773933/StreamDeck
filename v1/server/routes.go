@@ -1,8 +1,9 @@
 package server
 
 import (
-	"fmt"
+	// "fmt"
 	fiber "github.com/gofiber/fiber/v2"
+	strconv "strconv"
 	// types "github.com/0187773933/StreamDeck/v1/types"
 )
 
@@ -44,12 +45,33 @@ func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
 	// 	return nil
 	// })
 
-	s.UI.ActivePageID = "spotify-triple"
-	s.UI.Render()
+	// s.UI.ActivePageID = "spotify-triple"
+	// s.UI.Render()
+
+	button_type := ""
+	button_int , button_int_err := strconv.Atoi( context.Params( "button" ) )
+	if button_int_err == nil {
+		// Check if the integer is within the uint8 range (0-255)
+		if button_int >= 0 && button_int <= 255 {
+			button_type = "number"
+		}
+	} else {
+		button_type = "string"
+	}
+
+	switch button_type {
+		case "number":
+			s.UI.SingleClickNumber( uint8( button_int ) )
+			break;
+		case "string":
+			s.UI.SingleClickId( context.Params( "button" ) )
+			break;
+	}
 
 	return context.JSON( fiber.Map{
-		"route": "/some-button-number" ,
-		"result": "temp" ,
+		"route": "/some-button" ,
+		"type": button_type ,
+		"result": "success" ,
 	})
 }
 
@@ -63,9 +85,6 @@ func ( s *Server ) SetupRoutes() {
 	// 	admin_route_group.Get( url , ServeAuthenticatedPage )
 	// }
 
-	button_max := 100
-	for i := 0; i < button_max; i++ {
-		s.FiberApp.Get( fmt.Sprintf( "/%d" , ( i + 1 ) ) , s.PressButton )
-	}
+	s.FiberApp.Get( "/:button" , s.PressButton )
 
 }

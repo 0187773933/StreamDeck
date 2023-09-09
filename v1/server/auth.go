@@ -23,7 +23,7 @@ func validate_login_credentials( context *fiber.Ctx ) ( result bool ) {
 
 func Logout( context *fiber.Ctx ) ( error ) {
 	context.Cookie( &fiber.Cookie{
-		Name: "the-masters-closet-admin" ,
+		Name: GlobalConfig.ServerCookieName ,
 		Value: "" ,
 		Expires: time.Now().Add( -time.Hour ) , // set the expiration to the past
 		HTTPOnly: true ,
@@ -39,7 +39,7 @@ func HandleLogin( context *fiber.Ctx ) ( error ) {
 	if valid_login == false { return serve_failed_attempt( context ) }
 	context.Cookie(
 		&fiber.Cookie{
-			Name: "the-masters-closet-admin" ,
+			Name: GlobalConfig.ServerCookieName ,
 			Value: encryption.SecretBoxEncrypt( GlobalConfig.BoltDBEncryptionKey , GlobalConfig.ServerCookieAdminSecretMessage ) ,
 			Secure: true ,
 			Path: "/" ,
@@ -54,7 +54,7 @@ func HandleLogin( context *fiber.Ctx ) ( error ) {
 
 func validate_admin_cookie( context *fiber.Ctx ) ( result bool ) {
 	result = false
-	admin_cookie := context.Cookies( "the-masters-closet-admin" )
+	admin_cookie := context.Cookies( GlobalConfig.ServerCookieName )
 	if admin_cookie == "" { fmt.Println( "admin cookie was blank" ); return }
 	admin_cookie_value := encryption.SecretBoxDecrypt( GlobalConfig.BoltDBEncryptionKey , admin_cookie )
 	if admin_cookie_value != GlobalConfig.ServerCookieAdminSecretMessage { fmt.Println( "admin cookie secret message was not equal" ); return }
@@ -64,7 +64,7 @@ func validate_admin_cookie( context *fiber.Ctx ) ( result bool ) {
 
 func validate_admin( context *fiber.Ctx ) ( result bool ) {
 	result = false
-	admin_cookie := context.Cookies( "the-masters-closet-admin" )
+	admin_cookie := context.Cookies( GlobalConfig.ServerCookieName )
 	if admin_cookie != "" {
 		admin_cookie_value := encryption.SecretBoxDecrypt( GlobalConfig.BoltDBEncryptionKey , admin_cookie )
 		if admin_cookie_value == GlobalConfig.ServerCookieAdminSecretMessage {

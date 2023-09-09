@@ -135,9 +135,20 @@ func ( ui *StreamDeckUI ) is_endpoint_url( input_url string ) ( result bool ) {
 }
 
 
-func ( ui *StreamDeckUI ) btn_num_to_page_button( button_index uint8 ) ( result Button ) {
+func ( ui *StreamDeckUI ) BtnNumToPageButton( button_index uint8 ) ( result Button ) {
 	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
 		if button.Index == button_index {
+			result = ui.Buttons[ button.Id ]
+			result.Id = button.Id
+			return
+		}
+	}
+	return
+}
+
+func ( ui *StreamDeckUI ) BtnIdToPageButton( button_id string ) ( result Button ) {
+	for _ , button := range ui.Pages[ ui.ActivePageID ].Buttons {
+		if button.Id == button_id {
 			result = ui.Buttons[ button.Id ]
 			result.Id = button.Id
 			return
@@ -176,6 +187,55 @@ func ( ui *StreamDeckUI ) Render() {
 	}
 }
 
+func ( ui *StreamDeckUI ) SingleClickNumber( button_num uint8 ) {
+	fmt.Println( "Single Click" )
+	button := ui.BtnNumToPageButton( button_num )
+	if button.SingleClick == "" { fmt.Println( "Single Click not Registered" ); return; }
+	fmt.Println( button.Index , "Single Click" , button.SingleClick )
+	if ui.isPageID( button.SingleClick ) {
+		ui.ActivePageID = button.SingleClick
+		ui.Clear()
+		ui.Render()
+		return
+	} else if ui.is_endpoint_url( button.SingleClick ) {
+		if button.MP3 != "" {
+			CWD , _ := os.Getwd()
+			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+		}
+		get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+	} else {
+		fmt.Println( "we are exec-ing this ????" )
+		fmt.Println( button.SingleClick )
+		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
+		cmd.Start()
+	}
+}
+
+func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
+	fmt.Println( "Single Click" )
+	button := ui.BtnIdToPageButton( button_id )
+	if button.SingleClick == "" { fmt.Println( "Single Click not Registered" ); return; }
+	fmt.Println( button.Index , "Single Click" , button.SingleClick )
+	if ui.isPageID( button.SingleClick ) {
+		ui.ActivePageID = button.SingleClick
+		ui.Clear()
+		ui.Render()
+		return
+	} else if ui.is_endpoint_url( button.SingleClick ) {
+		if button.MP3 != "" {
+			CWD , _ := os.Getwd()
+			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+		}
+		get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+	} else {
+		fmt.Println( "we are exec-ing this ????" )
+		fmt.Println( button.SingleClick )
+		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
+		cmd.Start()
+	}
+}
+
+
 func ( ui *StreamDeckUI ) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
@@ -184,7 +244,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 	}
 
 	for key := range key_channel {
-		button := ui.btn_num_to_page_button(key.Index)
+		button := ui.BtnNumToPageButton(key.Index)
 		if key.Pressed {
 			now := time.Now()
 			if now.Sub(button.LastPressTime) > time.Second {
