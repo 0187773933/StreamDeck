@@ -227,7 +227,7 @@ func ( ui *StreamDeckUI ) SingleClickNumber( button_num uint8 ) {
 			CWD , _ := os.Getwd()
 			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 		}
-		get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
 		fmt.Println( "we are exec-ing this ????" )
 		fmt.Println( button.SingleClick )
@@ -251,7 +251,7 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 			CWD , _ := os.Getwd()
 			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 		}
-		get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
 		fmt.Println( "we are exec-ing this ????" )
 		fmt.Println( button.SingleClick )
@@ -302,7 +302,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
-							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.SingleClick , ui.EndpointToken ) )
+							get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 						} else {
 							fmt.Println( "we are exec-ing this ????" )
 							fmt.Println( button.SingleClick )
@@ -323,7 +323,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
-							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.DoubleClick , ui.EndpointToken ) )
+							get_json( fmt.Sprintf( "%s?%s" , button.DoubleClick , ui.EndpointToken ) )
 						} else {
 							fmt.Println( "we are exec-ing this ????" )
 							fmt.Println( button.DoubleClick )
@@ -344,7 +344,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 								CWD , _ := os.Getwd()
 								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 							}
-							get_json( fmt.Sprintf( "%s/%s?%s" , ui.EndpointHostName , button.TripleClick , ui.EndpointToken ) )
+							get_json( fmt.Sprintf( "%s?%s" , button.TripleClick , ui.EndpointToken ) )
 						} else {
 							fmt.Println( "we are exec-ing this ????" )
 							fmt.Println( button.TripleClick )
