@@ -2,16 +2,12 @@
 
 ## Todo
 
-- add central logging
+- Twilio Call Support
 - routes
-	- set pages with arbitrary icons , sounds
-		- remote url downloads
-	- just change the page
-	- press a numbered button
-	- press a named button / state
 	- clear
 	- turn off
 	- mute / toggle audio responses
 	- get logs
 - global cooldown stuff
-- add persistant state/memory/db besides config stuff
+- Redudency Checks
+	- if stream deck USB became un-plugged / re-plugged
