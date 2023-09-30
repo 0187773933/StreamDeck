@@ -94,7 +94,8 @@ type StreamDeckUI struct {
 }
 
 func ( ui *StreamDeckUI ) Connect() {
-	devs , _ := streamdeck_wrapper.Devices()
+	devs , error := streamdeck_wrapper.Devices()
+	if error != nil { panic( error ) }
 	if len( devs ) < 1 {
 		fmt.Println( "No Devices Found" )
 		os.Exit( 1 )
