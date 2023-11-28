@@ -6,15 +6,16 @@ require (
 	4d63.com/tz v1.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/dh1tw/hid v1.6.0
-	github.com/dh1tw/streamdeck v0.1.10
 	github.com/gofiber/fiber/v2 v2.46.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/hajimehoshi/oto v1.0.1
+	github.com/karalabe/hid v1.0.1-0.20190806082151-9c14560f9ee8
 	github.com/magicmonkey/go-streamdeck v0.0.5
 	github.com/manucorporat/try v0.0.0-20170609134256-2a0c6b941d52
 	github.com/muesli/streamdeck v0.4.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	golang.org/x/crypto v0.10.0
+	golang.org/x/image v0.6.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -24,7 +25,6 @@ require (
 	github.com/disintegration/gift v1.2.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/karalabe/hid v1.0.1-0.20190806082151-9c14560f9ee8 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
@@ -38,7 +38,6 @@ require (
 	github.com/valyala/fasthttp v1.47.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8 // indirect
-	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/mobile v0.0.0-20190415191353-3e0bab5405d6 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 )
