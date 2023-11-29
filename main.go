@@ -34,7 +34,6 @@ func main() {
 	if len( os.Args ) > 1 { config_file_path , _ = filepath.Abs( os.Args[ 1 ] ) }
 	config := utils.ParseConfig( config_file_path )
 	fmt.Printf( "Loaded Config File From : %s\n" , config_file_path )
-	fmt.Println( "wtf is up deny's" )
 
 	// 1.) Setup StreamDeck
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
