@@ -29,7 +29,7 @@ fi
 if [ "$REMOTE_HASH" != "$STORED_HASH" ]; then
     echo "New updates available. Updating and restarting the container."
     echo "$REMOTE_HASH" > "$HASH_FILE"
-    sudo ./dockerRun.sh
+    sudo ./dockerRestart.sh
 else
     echo "No updates available."
 fi
