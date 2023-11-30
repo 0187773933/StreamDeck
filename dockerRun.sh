@@ -13,6 +13,7 @@ sudo docker rm -f $APP_NAME || echo ""
 id=$(sudo docker run -dit \
 --name $APP_NAME \
 --restart='always' \
+--network=6105-buttons-1 \
 --privileged \
 --device=/dev/snd \
 -v $(pwd)/SAVE_FILES:/home/morphs/SAVE_FILES:rw \
