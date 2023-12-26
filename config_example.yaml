@@ -10,6 +10,8 @@ bolt_db_path: "./bolt.db"
 bolt_db_encryption_key: "asdf"
 stream_deck_ui:
   serial: "asdf"
+  icon_size: 80 # stream deck mini ?
+  # icon_size: 72 # large stream deck ?
   brightness: 30
   global_cooldown_milliseconds: 4000
   endpoint_hostname: "http://localhost:9371"

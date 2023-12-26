@@ -28,20 +28,20 @@ import (
 // https://github.com/muesli/streamdeck/blob/master/streamdeck.go#L112
 // StreamDeck OriginalV2 = 72x72
 // fmt.Println( device.Pixels )
-const IMAGE_SIZE uint = 72
+// const IMAGE_SIZE uint = 72
 
-func get_image_data( file_path string ) ( result *image.RGBA ) {
-	imgFile , err := os.Open( file_path )
-	if err != nil { fmt.Println( "Error:" , err ); return }
-	defer imgFile.Close()
-	img , _ , err := image.Decode( imgFile )
-	if err != nil { fmt.Println( "Error:" , err ); return }
-	resizedImg := resize.Resize( IMAGE_SIZE , IMAGE_SIZE , img , resize.Lanczos3 )
-	rgba := image.NewRGBA( image.Rect( 0 , 0 , int( IMAGE_SIZE ) , int( IMAGE_SIZE ) ) )
-	draw.Draw( rgba , rgba.Bounds() , resizedImg , resizedImg.Bounds().Min , draw.Src )
-	result = rgba
-	return
-}
+// func get_image_data( file_path string ) ( result *image.RGBA ) {
+// 	imgFile , err := os.Open( file_path )
+// 	if err != nil { fmt.Println( "Error:" , err ); return }
+// 	defer imgFile.Close()
+// 	img , _ , err := image.Decode( imgFile )
+// 	if err != nil { fmt.Println( "Error:" , err ); return }
+// 	resizedImg := resize.Resize( IMAGE_SIZE , IMAGE_SIZE , img , resize.Lanczos3 )
+// 	rgba := image.NewRGBA( image.Rect( 0 , 0 , int( IMAGE_SIZE ) , int( IMAGE_SIZE ) ) )
+// 	draw.Draw( rgba , rgba.Bounds() , resizedImg , resizedImg.Bounds().Min , draw.Src )
+// 	result = rgba
+// 	return
+// }
 
 func get_json( url string ) ( result string ) {
 	req , req_err := http.NewRequest( "GET" , url , nil )
@@ -83,6 +83,7 @@ type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Serial string `yaml:"serial"`
+	IconSize int `yaml:"icon_size"`
 	Brightness int `yaml:"brightness"`
 	GlobalCooldownMilliseconds int `yaml:"global_cooldown_milliseconds"`
 	EndpointHostName string `yaml:"endpoint_hostname"`
@@ -114,8 +115,22 @@ func ( ui *StreamDeckUI ) Connect() {
 	}
 	// ui.Device.Clear()
 }
+
+func ( ui *StreamDeckUI ) get_image_data( file_path string ) ( result *image.RGBA ) {
+	imgFile , err := os.Open( file_path )
+	if err != nil { fmt.Println( "Error:" , err ); return }
+	defer imgFile.Close()
+	img , _ , err := image.Decode( imgFile )
+	if err != nil { fmt.Println( "Error:" , err ); return }
+	resizedImg := resize.Resize( ui.IconSize , ui.IconSize , img , resize.Lanczos3 )
+	rgba := image.NewRGBA( image.Rect( 0 , 0 , int( ui.IconSize ) , int( ui.IconSize ) ) )
+	draw.Draw( rgba , rgba.Bounds() , resizedImg , resizedImg.Bounds().Min , draw.Src )
+	result = rgba
+	return
+}
+
 func ( ui *StreamDeckUI ) set_image( button_index uint8 , file_path string ) {
-	image_data := get_image_data( file_path )
+	image_data := ui.get_image_data( file_path )
 	err := ui.Device.SetImage( button_index , image_data )
 	if err != nil {
 		fmt.Printf( "Cannot set image: %s" , err )
