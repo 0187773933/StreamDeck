@@ -83,7 +83,7 @@ type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Serial string `yaml:"serial"`
-	IconSize int `yaml:"icon_size"`
+	IconSize uint `yaml:"icon_size"`
 	Brightness int `yaml:"brightness"`
 	GlobalCooldownMilliseconds int `yaml:"global_cooldown_milliseconds"`
 	EndpointHostName string `yaml:"endpoint_hostname"`

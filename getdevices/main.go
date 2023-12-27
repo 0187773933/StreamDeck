@@ -740,33 +740,33 @@ func PrintDevices( devices []HIDDevice ) {
 
 func main() {
 
-	// hid_devices := GetAllHIDDevices()
-	// PrintDevices( hid_devices )
+	hid_devices := GetAllHIDDevices()
+	PrintDevices( hid_devices )
 
-	dev := Device{
-		ID:                   "DevSrvsID:4296782515",
-		Serial:               "AL02K2C02319",
-		Columns:              3,
-		Rows:                 2,
-		Keys:                 6,
-		Pixels:               80,
-		DPI:                  138,
-		Padding:              16,
-		featureReportSize:    17,
-		firmwareOffset:       5,
-		keyStateOffset:       1,
-		translateKeyIndex:    identity,
-		imagePageSize:        1024,
-		imagePageHeaderSize:  16,
-		imagePageHeader:      miniImagePageHeader,
-		flipImage:            rotateCounterclockwise,
-		toImageFormat:        toBMP,
-		getFirmwareCommand:   c_REV1_FIRMWARE,
-		resetCommand:         c_REV1_RESET,
-		setBrightnessCommand: c_REV1_BRIGHTNESS,
-	}
+	// dev := Device{
+	// 	ID:                   "DevSrvsID:4296782515",
+	// 	Serial:               "AL02K2C02319",
+	// 	Columns:              3,
+	// 	Rows:                 2,
+	// 	Keys:                 6,
+	// 	Pixels:               80,
+	// 	DPI:                  138,
+	// 	Padding:              16,
+	// 	featureReportSize:    17,
+	// 	firmwareOffset:       5,
+	// 	keyStateOffset:       1,
+	// 	translateKeyIndex:    identity,
+	// 	imagePageSize:        1024,
+	// 	imagePageHeaderSize:  16,
+	// 	imagePageHeader:      miniImagePageHeader,
+	// 	flipImage:            rotateCounterclockwise,
+	// 	toImageFormat:        toBMP,
+	// 	getFirmwareCommand:   c_REV1_FIRMWARE,
+	// 	resetCommand:         c_REV1_RESET,
+	// 	setBrightnessCommand: c_REV1_BRIGHTNESS,
+	// }
 
-	fmt.Println( dev )
-	dev.Open()
-	dev.Clear()
+	// fmt.Println( dev )
+	// dev.Open()
+	// dev.Clear()
 }
