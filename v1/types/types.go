@@ -13,6 +13,7 @@ type ConfigFile struct {
 	ServerCookieSecret string `yaml:"server_cookie_secret"`
 	ServerCookieAdminSecretMessage string `yaml:"server_cookie_admin_secret_message"`
 	ServerCookieSecretMessage string `yaml:"server_cookie_secret_message"`
+	ServerLoginURLPrefix string `yaml:"server_login_url_prefix"`
 	AdminUsername string `yaml:"admin_username"`
 	AdminPassword string `yaml:"admin_password"`
 	TimeZone string `yaml:"time_zone"`
