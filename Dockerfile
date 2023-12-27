@@ -65,9 +65,9 @@ WORKDIR /home/$USERNAME
 
 # build server binary
 ARG GO_ARCH=amd64
-WORKDIR StreamDeckServer
-RUN /usr/local/go/bin/go mod tidy
-RUN GOOS=linux GOARCH=$GO_ARCH /usr/local/go/bin/go build -o /home/morphs/StreamDeckServer/server
+#WORKDIR StreamDeckServer
+#RUN /usr/local/go/bin/go mod tidy
+#RUN GOOS=linux GOARCH=$GO_ARCH /usr/local/go/bin/go build -o /home/morphs/StreamDeckServer/server
 #ENTRYPOINT [ "/home/morphs/StreamDeckServer/server" ]
 #ENTRYPOINT [ "bash" ]
 
