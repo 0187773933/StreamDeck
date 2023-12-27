@@ -82,9 +82,10 @@ type StreamDeckUIPage struct {
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	ActivePageID string `yaml:"-"`
+	Sleep bool `yaml:"-"`
 	Serial string `yaml:"serial"`
 	IconSize uint `yaml:"icon_size"`
-	Brightness int `yaml:"brightness"`
+	Brightness uint8 `yaml:"brightness"`
 	GlobalCooldownMilliseconds int `yaml:"global_cooldown_milliseconds"`
 	EndpointHostName string `yaml:"endpoint_hostname"`
 	EndpointToken string `yaml:"endpoint_token"`
@@ -195,7 +196,23 @@ func ( ui *StreamDeckUI ) BtnIdToPageButton( button_id string ) ( result Button 
 	return
 }
 
+func ( ui *StreamDeckUI ) SetBrightness( brightness_level uint8 ) {
+	ui.Device.SetBrightness( brightness_level )
+}
+
 func ( ui *StreamDeckUI ) Clear() { ui.Device.Clear() }
+
+func ( ui *StreamDeckUI ) Show() {
+	ui.Sleep = false
+	// ui.Device.Wake()
+	ui.Device.SetBrightness( 100 )
+}
+func ( ui *StreamDeckUI ) Hide() {
+	ui.Sleep = true
+	// ui.Device.Sleep()
+	ui.Device.SetBrightness( 0 )
+}
+
 
 func ( ui *StreamDeckUI ) RenderSoft() {
 	// ui.Device.Clear()
@@ -300,7 +317,10 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 			if button.Timer != nil {
 				button.Timer.Stop()
 			}
-
+			if ui.Sleep == true {
+				ui.Show()
+				ui.Sleep = false
+			}
 			button.Timer = time.AfterFunc( ( time.Millisecond * 500 ) , func() {
 				buttonPressCount := button.PressCount
 				switch buttonPressCount {

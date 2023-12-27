@@ -60,6 +60,24 @@ func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
 	})
 }
 
+func ( s *Server ) Show( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.Show()
+	return context.JSON( fiber.Map{
+		"route": "/show" ,
+		"result": "success" ,
+	})
+}
+
+func ( s *Server ) Hide( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.Hide()
+	return context.JSON( fiber.Map{
+		"route": "/hide" ,
+		"result": "success" ,
+	})
+}
+
 func ( s *Server ) RenderPage( context *fiber.Ctx ) ( error ) {
 	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
 	page_id := context.Params( "id" )
@@ -90,6 +108,8 @@ func ( s *Server ) SetupRoutes() {
 	// 	admin_route_group.Get( url , ServeAuthenticatedPage )
 	// }
 
+	s.FiberApp.Get( "/show" , s.Show )
+	s.FiberApp.Get( "/hide" , s.Hide )
 	s.FiberApp.Get( "/:button" , s.PressButton )
 	s.FiberApp.Get( "/page/:id" , s.RenderPage )
 

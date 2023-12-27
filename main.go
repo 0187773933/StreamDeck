@@ -51,6 +51,7 @@ func main() {
 	fmt.Println( ui )
 	ui.Clear()
 	ui.Render()
+	ui.SetBrightness( ui.Brightness )
 	go ui.WatchKeys()
 
 	// 2.) Start Server
