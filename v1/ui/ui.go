@@ -84,6 +84,9 @@ type StreamDeckUIPage struct {
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	Ready bool `yaml:"-"`
+	Muted bool `yaml:"muted"`
+	Fresh bool `yaml:"-"`
+	SettingsMode bool `yaml:"-"`
 	PlayBackMutex sync.Mutex `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Sleep bool `yaml:"-"`
@@ -236,23 +239,52 @@ func ( ui *StreamDeckUI ) SetBrightness( brightness_level uint8 ) {
 	ui.Device.SetBrightness( brightness_level )
 }
 
+func ( ui *StreamDeckUI ) DecreaseBrightness() {
+	ui.Brightness = ( ui.Brightness - 10 )
+	if ui.Brightness <= 0 {
+		ui.Brightness = 0
+		ui.Sleep = true
+	}
+	ui.Device.SetBrightness( ui.Brightness )
+}
+
+func ( ui *StreamDeckUI ) IncreaseBrightness() {
+	ui.Brightness = ( ui.Brightness + 10 )
+	if ui.Brightness > 100 { ui.Brightness = 100 }
+	ui.Device.SetBrightness( ui.Brightness )
+}
+
 func ( ui *StreamDeckUI ) Clear() { ui.Device.Clear() }
 
 func ( ui *StreamDeckUI ) Show() {
 	ui.Sleep = false
 	// ui.Device.Wake()
 	ui.Device.SetBrightness( 100 )
+	ui.Brightness = 100
 }
 func ( ui *StreamDeckUI ) Hide() {
 	ui.Sleep = true
 	// ui.Device.Sleep()
 	ui.Device.SetBrightness( 0 )
+	ui.Brightness = 0
 }
 
+func ( ui *StreamDeckUI ) Mute() {
+	ui.Muted = true
+}
+
+func ( ui *StreamDeckUI ) UnMute() {
+	ui.Muted = false
+}
 
 func ( ui *StreamDeckUI ) RenderSoft() {
 	// ui.Device.Clear()
 	page_id := ui.GetActivePageID()
+	if strings.HasPrefix( page_id , "settings" ) {
+		ui.SettingsMode = true
+	} else {
+		ui.SettingsMode = false
+	}
 	for _ , button := range ui.Pages[ page_id ].Buttons {
 		btn := ui.Buttons[ button.Id ]
 		if ui.LoadedButtonImages[ button.Index ] != btn.Image {
@@ -270,6 +302,11 @@ func ( ui *StreamDeckUI ) RenderSoft() {
 func ( ui *StreamDeckUI ) Render() {
 	// ui.Device.Clear()
 	page_id := ui.GetActivePageID()
+	if strings.HasPrefix( page_id , "settings" ) {
+		ui.SettingsMode = true
+	} else {
+		ui.SettingsMode = false
+	}
 	fmt.Println( "Active Page ID ===" , page_id )
 	for _ , button := range ui.Pages[ page_id ].Buttons {
 		btn := ui.Buttons[ button.Id ]
@@ -294,7 +331,9 @@ func ( ui *StreamDeckUI ) SingleClickNumber( button_num uint8 ) {
 	} else if ui.is_endpoint_url( button.SingleClick ) {
 		if button.MP3 != "" {
 			CWD , _ := os.Getwd()
-			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+			if ui.Muted == false {
+				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+			}
 		}
 		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
@@ -317,7 +356,9 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 	} else if ui.is_endpoint_url( button.SingleClick ) {
 		if button.MP3 != "" {
 			CWD , _ := os.Getwd()
-			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+			if ui.Muted == false {
+				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
+			}
 		}
 		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
@@ -329,14 +370,28 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 
 func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
 	fmt.Println( button.Index , action_type , action )
-	if ui.isPageID(action) {
+	if action == "settings-brightness-increase" {
+		ui.IncreaseBrightness()
+	} else if action == "settings-brightness-decrease" {
+		ui.DecreaseBrightness()
+	} else if action == "settings-show" {
+		ui.Show()
+	} else if action == "settings-hide" {
+		ui.Hide()
+	} else if action == "settings-mute" {
+		ui.Mute()
+	} else if action == "settings-unmute" {
+		ui.UnMute()
+	} else if ui.isPageID( action ) {
 		ui.SetActivePageID( action )
 		ui.Clear()
 		ui.Render()
 	} else if ui.is_endpoint_url( action ) {
 		if mp3_path != "" {
 			CWD, _ := os.Getwd()
-			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , mp3_path ) )
+			if ui.Muted == false {
+				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , mp3_path ) )
+			}
 		}
 		go get_json( fmt.Sprintf( "%s?%s" , action , ui.EndpointToken ) )
 	} else {
@@ -371,16 +426,27 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 			}
 
 			if ui.Sleep {
+				fmt.Println( "here again" )
 				ui.Show()
 				ui.Sleep = false
+				ui.Muted = false
+				ui.Brightness = 100
+				ui.Device.SetBrightness( 100 )
+				ui.Fresh = true
 			}
 
 			button.Timer = time.AfterFunc( ( time.Millisecond * 500 ) , func() {
+				if ui.Fresh {
+					ui.Fresh = false
+					return
+				}
 				switch button.PressCount {
 					case 1:
-						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
-							fmt.Println( "pressed too soon , waiting" )
-							break
+						if ui.SettingsMode == false {
+							if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+								fmt.Println( "pressed too soon , waiting" )
+								break
+							}
 						}
 						if button.SingleClick == "" {
 							fmt.Println( "Single Click not Registered" )
@@ -389,9 +455,11 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 						ui.ButtonAction( button , "Single Click" , button.SingleClick , button.MP3 )
 						ui.LastPressTime = now
 					case 2:
-						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
-							fmt.Println( "pressed too soon , waiting" )
-							break
+						if ui.SettingsMode == false {
+							if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+								fmt.Println( "pressed too soon , waiting" )
+								break
+							}
 						}
 						if button.DoubleClick == "" {
 							fmt.Println( "Double Click not Registered" )
@@ -400,9 +468,11 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 						ui.ButtonAction( button , "Double Click", button.DoubleClick , button.MP3 )
 						ui.LastPressTime = now
 					case 3:
-						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
-							fmt.Println( "pressed too soon , waiting" )
-							break
+						if ui.SettingsMode == false {
+							if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+								fmt.Println( "pressed too soon , waiting" )
+								break
+							}
 						}
 						if button.TripleClick == "" {
 							fmt.Println( "Triple Click not Registered" )
@@ -430,6 +500,7 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 }
 
 func ( ui *StreamDeckUI ) PlayMP3( file_path string ) {
+	if ui.Muted { return }
 	ui.PlayBackMutex.Lock()
 	defer ui.PlayBackMutex.Unlock()
 	try.This( func() {
@@ -453,6 +524,8 @@ func NewStreamDeckUI( file_path string ) ( result *StreamDeckUI ) {
 	file , _ := ioutil.ReadFile( file_path )
 	error := yaml.Unmarshal( file , &result )
 	if error != nil { panic( error ) }
+	result.LoadedButtonImages = make(map[uint8]string)
+	result.Brightness = 100
 	return
 }
 
@@ -460,6 +533,7 @@ func NewStreamDeckUIFromInterface( config *interface{} ) ( result *StreamDeckUI 
 	intermediate , _ := yaml.Marshal( config )
 	error := yaml.Unmarshal( intermediate , &result )
 	result.LoadedButtonImages = make(map[uint8]string)
+	result.Brightness = 100
 	if error != nil { panic( error ) }
 	return
 }

@@ -33,7 +33,5 @@
 
 - Twilio Call Support
 - routes
-	- clear
-	- turn off
 	- mute / toggle audio responses
 	- get logs

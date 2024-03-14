@@ -1,52 +1,56 @@
-server_base_url: "http://localhost:5953"
-server_port: "5953"
+server_base_url: "http://localhost:1234"
+server_port: "1234"
 server_api_key: "asdf"
+server_cookie_name: "stream-deck-controller"
 server_cookie_secret: "asdf="
 server_cookie_secret_message: "why"
-admin_username: "asdf"
+server_login_url_prefix: "asdf"
+admin_username: "sadf"
 admin_password: "asdf"
 time_zone: "America/New_York"
 bolt_db_path: "./bolt.db"
 bolt_db_encryption_key: "asdf"
 stream_deck_ui:
   serial: "asdf"
-  icon_size: 80 # stream deck mini ?
-  # icon_size: 72 # large stream deck ?
+  vendor_id: "0fd9"
+  product_id: "0090"
+  icon_size: 80
   brightness: 30
   global_cooldown_milliseconds: 4000
-  endpoint_hostname: "http://localhost:9371"
-  endpoint_token: "x=asdf"
+  endpoint_hostname: "http://localhost:1235"
+  endpoint_token: "k=asdf"
   buttons:
     spotify:
       image: "icons/spotify.png"
-      mp3: "sayings/spotify.mp3"
-      single_click: "http://localhost:9371/streamdeck/1"
+      mp3: "mp3/spotify.mp3"
+      single_click: "http://localhost:1234/streamdeck/1" # brings up the point , where now we need "/spotify/playlist-shuffle/next" , hardcoded for now
       triple_click: "spotify-triple"
     spotify-triple:
       image: "icons/spotify.png"
-      mp3: "sayings/spotify.mp3"
-      single_click: "http://localhost:9371/streamdeck/1"
+      mp3: "mp3/spotify.mp3"
+      single_click: "http://localhost:1234/spotify/playlist-shuffle/75igTPKAdDsBYFtYCHO555"
       triple_click: "default"
     twitch:
       image: "icons/twitch.png"
-      mp3: "sayings/twitch.mp3"
-      single_click: "http://localhost:9371/streamdeck/2"
+      mp3: "mp3/twitch.mp3"
+      single_click: "http://localhost:1234/streamdeck/2"
     youtube:
       image: "icons/youtube.png"
-      mp3: "sayings/youtube.mp3"
-      single_click: "http://localhost:9371/streamdeck/3"
+      mp3: "mp3/youtube.mp3"
+      single_click: "http://localhost:1234/streamdeck/3"
     disney:
       image: "icons/disney.png"
-      mp3: "sayings/disney plus.mp3"
-      single_click: "http://localhost:9371/streamdeck/4"
+      mp3: "mp3/disney plus.mp3"
+      single_click: "http://localhost:1234/streamdeck/4"
     escape-rope:
       image: "icons/escape-rope.png"
-      mp3: "sayings/escape-rope.mp3"
-      single_click: "http://localhost:9371/streamdeck/5"
+      mp3: "mp3/escape-rope.mp3"
+      single_click: "http://localhost:1234/streamdeck/5"
     stretch:
       image: "icons/1f49a.png"
-      mp3: "sayings/I need to stretch.mp3"
-      single_click: "http://localhost:9371/streamdeck/6"
+      mp3: "mp3/I need to stretch.mp3"
+      single_click: "http://localhost:1234/streamdeck/6"
+      triple_click: "settings"
     return:
       image: "icons/return.jpeg"
       single_click: "default"
@@ -58,6 +62,58 @@ stream_deck_ui:
       image: "icons/lights-off.png"
       single_click: "/usr/local/bin/loe"
       # toggle: "lights-on"
+    night-off:
+      image: "icons/night-off.png"
+      single_click: "/usr/local/bin/day"
+      toggle: "night-25"
+    night-25:
+      image: "icons/night-25.png"
+      single_click: "/usr/local/bin/night25"
+      toggle: "night-50"
+    night-50:
+      image: "icons/night-50.png"
+      single_click: "/usr/local/bin/night50"
+      toggle: "night-75"
+    night-75:
+      image: "icons/night-75.png"
+      single_click: "/usr/local/bin/night75"
+      toggle: "night-100"
+    night-100:
+      image: "icons/night-100.png"
+      single_click: "/usr/local/bin/night"
+      toggle: "night-off"
+    rewind-30:
+      image: "icons/rewind-30.png"
+      single_click: "osascript scripts/rewind_30.applescript"
+      double_click: "osascript scripts/rewind_30.applescript"
+      triple_click: "osascript scripts/rewind_30.applescript"
+    fast-forward-30:
+      image: "icons/fast-forward-30.png"
+      single_click: "osascript scripts/fast_forward_30.applescript"
+      double_click: "osascript scripts/fast_forward_30.applescript"
+      triple_click: "osascript scripts/fast_forward_30.applescript"
+    music-previous:
+      image: "icons/arrow-left.png"
+      single_click: "osascript scripts/previous.applescript"
+      double_click: "osascript scripts/previous.applescript"
+      triple_click: "osascript scripts/previous.applescript"
+    music-next:
+      image: "icons/arrow-right.png"
+      single_click: "osascript scripts/next.applescript"
+      double_click: "osascript scripts/next.applescript"
+      triple_click: "osascript scripts/next.applescript"
+    settings-return:
+      image: "icons/return.jpeg"
+      single_click: "settings"
+    settings-brightness-activator:
+      image: "icons/lights-on-yellow.png"
+      single_click: "settings-brightness"
+    settings-brightness-increase:
+      image: "icons/arrow-up.png"
+      single_click: "settings-brightness-increase"
+    settings-brightness-decrease:
+      image: "icons/arrow-down.png"
+      single_click: "settings-brightness-decrease"
   pages:
     default:
       buttons:
@@ -67,11 +123,11 @@ stream_deck_ui:
           id: "twitch"
         - index: 2
           id: "youtube"
-        - index: 5
+        - index: 3
           id: "disney"
-        - index: 6
+        - index: 4
           id: "escape-rope"
-        - index: 7
+        - index: 5
           id: "stretch"
     lights:
       buttons:
@@ -79,9 +135,41 @@ stream_deck_ui:
           id: "lights-on"
         - index: 9
           id: "lights-off"
+    one:
+      buttons:
+        - index: 0
+          id: "night-25"
+    media:
+      buttons:
+        - index: 4
+          id: "spotify"
+        - index: 5
+          id: "rewind-30"
+        - index: 6
+          id: "fast-forward-30"
+        - index: 10
+          id: "music-previous"
+        - index: 11
+          id: "music-next"
     spotify-triple:
       buttons:
         - index: 0
           id: "spotify-triple"
         - index: 2
           id: "return"
+    settings:
+      buttons:
+        - index: 0
+          id: "settings-brightness-activator"
+        - index: 5
+          id: "return"
+    settings-brightness:
+      buttons:
+        - index: 0
+          id: "settings-brightness-activator"
+        - index: 1
+          id: "settings-brightness-increase"
+        - index: 4
+          id: "settings-brightness-decrease"
+        - index: 5
+          id: "settings-return"

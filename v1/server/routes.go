@@ -60,6 +60,26 @@ func ( s *Server ) PressButton( context *fiber.Ctx ) ( error ) {
 	})
 }
 
+func ( s *Server ) DecreaseBrightness( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.DecreaseBrightness()
+	return context.JSON( fiber.Map{
+		"route": "/brightness/decrease" ,
+		"brightness": s.UI.Brightness ,
+		"result": "success" ,
+	})
+}
+
+func ( s *Server ) IncreaseBrightness( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.IncreaseBrightness()
+	return context.JSON( fiber.Map{
+		"route": "/brightness/increase" ,
+		"brightness": s.UI.Brightness ,
+		"result": "success" ,
+	})
+}
+
 func ( s *Server ) Show( context *fiber.Ctx ) ( error ) {
 	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
 	s.UI.Show()
@@ -75,6 +95,48 @@ func ( s *Server ) Hide( context *fiber.Ctx ) ( error ) {
 	return context.JSON( fiber.Map{
 		"route": "/hide" ,
 		"result": "success" ,
+	})
+}
+
+func ( s *Server ) Mute( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.Mute()
+	return context.JSON( fiber.Map{
+		"route": "/mute" ,
+		"result": "success" ,
+		"muted": s.UI.Muted ,
+	})
+}
+
+func ( s *Server ) UnMute( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.UnMute()
+	return context.JSON( fiber.Map{
+		"route": "/unmute" ,
+		"result": "success" ,
+		"muted": s.UI.Muted ,
+	})
+}
+
+func ( s *Server ) Sleep( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.Hide()
+	s.UI.Mute()
+	return context.JSON( fiber.Map{
+		"route": "/sleep" ,
+		"result": "success" ,
+		"muted": s.UI.Muted ,
+	})
+}
+
+func ( s *Server ) Wake( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+	s.UI.Show()
+	s.UI.UnMute()
+	return context.JSON( fiber.Map{
+		"route": "/wake" ,
+		"result": "success" ,
+		"muted": s.UI.Muted ,
 	})
 }
 
@@ -108,8 +170,19 @@ func ( s *Server ) SetupRoutes() {
 	// 	admin_route_group.Get( url , ServeAuthenticatedPage )
 	// }
 
+	s.FiberApp.Get( "/" , func( ctx *fiber.Ctx ) ( error ) {
+		ctx.Set( "Content-Type" , "text/html" )
+		return ctx.SendString( "<h1>Stream Deck Server</h1>" )
+	})
+
 	s.FiberApp.Get( "/show" , s.Show )
+	s.FiberApp.Get( "/brightness/increase" , s.IncreaseBrightness )
+	s.FiberApp.Get( "/brightness/decrease" , s.DecreaseBrightness )
 	s.FiberApp.Get( "/hide" , s.Hide )
+	s.FiberApp.Get( "/mute" , s.Mute )
+	s.FiberApp.Get( "/unmute" , s.UnMute )
+	s.FiberApp.Get( "/sleep" , s.Sleep )
+	s.FiberApp.Get( "/wake" , s.Wake )
 	s.FiberApp.Get( "/:button" , s.PressButton )
 	s.FiberApp.Get( "/page/:id" , s.RenderPage )
 
