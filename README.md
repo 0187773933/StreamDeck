@@ -32,6 +32,6 @@
 ## Todo
 
 - Twilio Call Support
+- PushOver Notifications
 - routes
-	- mute / toggle audio responses
 	- get logs
