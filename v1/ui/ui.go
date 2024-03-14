@@ -8,9 +8,11 @@ import (
 	"time"
 	// "net/url"
 	"os/exec"
+	"sync"
 	// "reflect"
 	"strings"
-	streamdeck_wrapper "github.com/muesli/streamdeck"
+	// streamdeck_wrapper "github.com/muesli/streamdeck"
+	streamdeck_wrapper "github.com/0187773933/StreamDeck/v1/streamdeck"
 	"image"
 	"image/draw"
 	_ "image/jpeg"
@@ -82,6 +84,7 @@ type StreamDeckUIPage struct {
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	Ready bool `yaml:"-"`
+	PlayBackMutex sync.Mutex `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Sleep bool `yaml:"-"`
 	Serial string `yaml:"serial"`
@@ -89,7 +92,8 @@ type StreamDeckUI struct {
 	ProductID string `yaml:"product_id"`
 	IconSize uint `yaml:"icon_size"`
 	Brightness uint8 `yaml:"brightness"`
-	GlobalCooldownMilliseconds int `yaml:"global_cooldown_milliseconds"`
+	GlobalCooldownMilliseconds int64 `yaml:"global_cooldown_milliseconds"`
+	LastPressTime time.Time `yaml:"-"`
 	EndpointHostName string `yaml:"endpoint_hostname"`
 	EndpointToken string `yaml:"endpoint_token"`
 	Pages map[string]StreamDeckUIPage `yaml:"pages"`
@@ -101,7 +105,6 @@ type StreamDeckUI struct {
 func ( ui *StreamDeckUI ) Connect() {
 	devs , error := streamdeck_wrapper.Devices()
 	if error != nil { panic( error ) }
-	fmt.Println( "? 1" )
 	if len( devs ) < 1 {
 		fmt.Println( "No Devices Found" )
 		ui.Ready = false
@@ -295,8 +298,7 @@ func ( ui *StreamDeckUI ) SingleClickNumber( button_num uint8 ) {
 		}
 		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
-		fmt.Println( "we are exec-ing this ????" )
-		fmt.Println( button.SingleClick )
+		fmt.Printf( "exec-ing: %s\n" , button.SingleClick )
 		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
 		cmd.Start()
 	}
@@ -319,14 +321,30 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 		}
 		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
 	} else {
-		fmt.Println( "we are exec-ing this ????" )
-		fmt.Println( button.SingleClick )
+		fmt.Printf( "exec-ing: %s\n" , button.SingleClick )
 		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
 		cmd.Start()
 	}
 }
 
-
+func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
+	fmt.Println( button.Index , action_type , action )
+	if ui.isPageID(action) {
+		ui.SetActivePageID( action )
+		ui.Clear()
+		ui.Render()
+	} else if ui.is_endpoint_url( action ) {
+		if mp3_path != "" {
+			CWD, _ := os.Getwd()
+			go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , mp3_path ) )
+		}
+		go get_json( fmt.Sprintf( "%s?%s" , action , ui.EndpointToken ) )
+	} else {
+		fmt.Printf( "exec-ing: %s\n", action )
+		cmd := exec.Command( "bash", "-c" , action )
+		go cmd.Start()
+	}
+}
 func ( ui *StreamDeckUI ) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
@@ -334,10 +352,11 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 		os.Exit( 1 )
 	}
 	for key := range key_channel {
-		button := ui.BtnNumToPageButton(key.Index)
+		button := ui.BtnNumToPageButton( key.Index )
 		if key.Pressed {
 			now := time.Now()
-			if now.Sub(button.LastPressTime) > time.Second {
+
+			if now.Sub( button.LastPressTime ) > time.Second {
 				button.PressCount = 0
 			}
 			button.PressCount++
@@ -350,109 +369,78 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 			if button.Timer != nil {
 				button.Timer.Stop()
 			}
-			if ui.Sleep == true {
+
+			if ui.Sleep {
 				ui.Show()
 				ui.Sleep = false
 			}
+
 			button.Timer = time.AfterFunc( ( time.Millisecond * 500 ) , func() {
-				buttonPressCount := button.PressCount
-				switch buttonPressCount {
+				switch button.PressCount {
 					case 1:
-						// fmt.Println( "Single Click" )
-						if button.SingleClick == "" { fmt.Println( "Single Click not Registered" ); break }
-						fmt.Println( button.Index , "Single Click" , button.SingleClick )
-						if ui.isPageID( button.SingleClick ) {
-							ui.SetActivePageID( button.SingleClick )
-							ui.Clear()
-							ui.Render()
-							break;
-						} else if ui.is_endpoint_url( button.SingleClick ) {
-							if button.MP3 != "" {
-								CWD , _ := os.Getwd()
-								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
-							}
-							get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
-						} else {
-							fmt.Println( "we are exec-ing this ????" )
-							fmt.Println( button.SingleClick )
-							cmd := exec.Command( "bash" , "-c" , button.SingleClick )
-							cmd.Start()
+						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+							fmt.Println( "pressed too soon , waiting" )
+							break
 						}
+						if button.SingleClick == "" {
+							fmt.Println( "Single Click not Registered" )
+							break
+						}
+						ui.ButtonAction( button , "Single Click" , button.SingleClick , button.MP3 )
+						ui.LastPressTime = now
 					case 2:
-						// fmt.Println( "Double Click" )
-						if button.DoubleClick == "" { fmt.Println( "Double Click not Registered" ); break }
-						fmt.Println( button.Index , "Double Click" , button.DoubleClick )
-						if ui.isPageID( button.DoubleClick ) {
-							ui.SetActivePageID( button.DoubleClick )
-							ui.Clear()
-							ui.Render()
-							break;
-						} else if ui.is_endpoint_url( button.DoubleClick ) {
-							if button.MP3 != "" {
-								CWD , _ := os.Getwd()
-								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
-							}
-							get_json( fmt.Sprintf( "%s?%s" , button.DoubleClick , ui.EndpointToken ) )
-						} else {
-							fmt.Println( "we are exec-ing this ????" )
-							fmt.Println( button.DoubleClick )
-							cmd := exec.Command( "bash" , "-c" , button.DoubleClick )
-							cmd.Start()
+						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+							fmt.Println( "pressed too soon , waiting" )
+							break
 						}
+						if button.DoubleClick == "" {
+							fmt.Println( "Double Click not Registered" )
+							break
+						}
+						ui.ButtonAction( button , "Double Click", button.DoubleClick , button.MP3 )
+						ui.LastPressTime = now
 					case 3:
-						// fmt.Println( "Triple Click" )
-						if button.TripleClick == "" { fmt.Println( "Triple Click not Registered" ); break }
-						fmt.Println( button.Index , "Triple Click" , button.TripleClick )
-						if ui.isPageID( button.TripleClick ) {
-							ui.SetActivePageID( button.TripleClick )
-							ui.Clear()
-							ui.Render()
-							break;
-						} else if ui.is_endpoint_url( button.TripleClick ) {
-							if button.MP3 != "" {
-								CWD , _ := os.Getwd()
-								go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
-							}
-							get_json( fmt.Sprintf( "%s?%s" , button.TripleClick , ui.EndpointToken ) )
-						} else {
-							fmt.Println( "we are exec-ing this ????" )
-							fmt.Println( button.TripleClick )
-							cmd := exec.Command( "bash" , "-c" , button.TripleClick )
-							cmd.Start()
+						if now.Sub( ui.LastPressTime ).Milliseconds() < ui.GlobalCooldownMilliseconds {
+							fmt.Println( "pressed too soon , waiting" )
+							break
 						}
+						if button.TripleClick == "" {
+							fmt.Println( "Triple Click not Registered" )
+							break
+						}
+						ui.ButtonAction( button, "Triple Click", button.TripleClick , button.MP3 )
+						ui.LastPressTime = now
 				}
 				button.PressCount = 0
 			})
 
-			// Update the button in the ui.Buttons map
 			if button.Toggle != "" {
-				page_id := ui.GetActivePageID()
-				for i , x_button := range ui.Pages[ ui.ActivePageID ].Buttons {
-					if x_button.Index == key.Index {
-						ui.Pages[ page_id ].Buttons[ i ].Id = button.Toggle
+				pageID := ui.GetActivePageID()
+				for i , xButton := range ui.Pages[ ui.ActivePageID ].Buttons {
+					if xButton.Index == key.Index {
+						ui.Pages[ pageID ].Buttons[ i ].Id = button.Toggle
 						break
 					}
 				}
 				ui.RenderSoft()
 			}
-			ui.Buttons[button.Id] = button
-		} else {
-			// when the key is released
-			// Just ignore this event
+			ui.Buttons[ button.Id ] = button
 		}
 	}
 }
 
 func ( ui *StreamDeckUI ) PlayMP3( file_path string ) {
+	ui.PlayBackMutex.Lock()
+	defer ui.PlayBackMutex.Unlock()
 	try.This( func() {
-		f, err := os.Open( file_path )
+		f , err := os.Open( file_path )
 		defer f.Close()
-		if err != nil { fmt.Println( err ) }
+		if err != nil { fmt.Println( err ); return }
 		d , err := mp3.NewDecoder( f )
-		if err != nil { fmt.Println( err ) }
+		if err != nil { fmt.Println( err ); return }
 		c , err := oto.NewContext( d.SampleRate() , 2 , 2 , 8192 )
 		defer c.Close()
-		if err != nil { fmt.Println( err ) }
+		if err != nil { fmt.Println( err ); return }
 		p := c.NewPlayer()
 		defer p.Close()
 		if _ , err := io.Copy( p , d ); err != nil { fmt.Println( err ) }

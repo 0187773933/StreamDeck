@@ -41,7 +41,7 @@ stream_deck_ui:
       single_click: "http://localhost:9371/streamdeck/4"
     escape-rope:
       image: "icons/escape-rope.png"
-      mp3: "sayings/escape rope.mp3"
+      mp3: "sayings/escape-rope.mp3"
       single_click: "http://localhost:9371/streamdeck/5"
     stretch:
       image: "icons/1f49a.png"
