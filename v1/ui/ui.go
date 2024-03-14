@@ -81,9 +81,12 @@ type StreamDeckUIPage struct {
 }
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
+	Ready bool `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Sleep bool `yaml:"-"`
 	Serial string `yaml:"serial"`
+	VendorID string `yaml:"vendor_id"`
+	ProductID string `yaml:"product_id"`
 	IconSize uint `yaml:"icon_size"`
 	Brightness uint8 `yaml:"brightness"`
 	GlobalCooldownMilliseconds int `yaml:"global_cooldown_milliseconds"`
@@ -98,9 +101,12 @@ type StreamDeckUI struct {
 func ( ui *StreamDeckUI ) Connect() {
 	devs , error := streamdeck_wrapper.Devices()
 	if error != nil { panic( error ) }
+	fmt.Println( "? 1" )
 	if len( devs ) < 1 {
 		fmt.Println( "No Devices Found" )
-		os.Exit( 1 )
+		ui.Ready = false
+		// os.Exit( 1 )
+		return
 	}
 	for _ , dev := range devs {
 		if dev.Serial == ui.Serial {
@@ -112,10 +118,37 @@ func ( ui *StreamDeckUI ) Connect() {
 	open_error := ui.Device.Open()
 	if open_error != nil {
 		fmt.Printf( "can't open device: %s" , open_error )
-		os.Exit( 1 )
+		// os.Exit( 1 )
+		ui.Ready = false
+		return
 	}
+	ui.Ready = true
 	// ui.Device.Clear()
 }
+
+func GetDevices() ( result []streamdeck_wrapper.Device ) {
+	result , error := streamdeck_wrapper.Devices()
+	if error != nil { panic( error ) }
+	if len( result ) < 1 {
+		fmt.Println( "No Devices Found" )
+		os.Exit( 1 )
+	}
+	return
+}
+
+func PrintDevices() ( result []streamdeck_wrapper.Device ) {
+	result , error := streamdeck_wrapper.Devices()
+	if error != nil { panic( error ) }
+	if len( result ) < 1 {
+		fmt.Println( "No Devices Found" )
+		os.Exit( 1 )
+	}
+	for i , dev := range result {
+		fmt.Printf( "%d === %s\n" , i , dev.Serial )
+	}
+	return
+}
+
 
 func ( ui *StreamDeckUI ) get_image_data( file_path string ) ( result *image.RGBA ) {
 	imgFile , err := os.Open( file_path )

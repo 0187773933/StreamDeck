@@ -17,7 +17,7 @@
 - sudo apt-get install libhidapi-dev
 - sudo usermod -a -G dialout morphs
 - sudo nano /etc/udev/rules.d/99-streamdeck.rules
-        - SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006d", MODE="0666", GROUP="morphs"
+	- SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006d", MODE="0666", GROUP="morphs"
 - sudo udevadm control --reload-rules && sudo udevadm trigger
 
 ## Todo

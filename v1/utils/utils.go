@@ -82,6 +82,10 @@ func SanitizeInputString( input string ) ( result string ) {
 	return
 }
 
+func PrettyPrint( input interface{} ) {
+	jd , _ := json.MarshalIndent( input , "" , "  " )
+	fmt.Println( string( jd ) )
+}
 
 func PrintDevices( devices []Device ) {
 	jd , _ := json.MarshalIndent( devices , "" , "  " )
