@@ -1,5 +1,9 @@
 # Stream Deck Controller
 
+## find sound card and update asound.conf
+
+`aplay -l`
+
 ## osx 14.0 broke hid stuff in meusli/streamdeck somehow
 
 - you can still get it with https://github.com/dh1tw/hid
@@ -16,9 +20,14 @@
 - sudo apt-get install libasound2-dev
 - sudo apt-get install libhidapi-dev
 - sudo usermod -a -G dialout morphs
+- sudo usermod -a -G audio morphs
 - sudo nano /etc/udev/rules.d/99-streamdeck.rules
-	- SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006d", MODE="0666", GROUP="morphs"
+	- SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="006d", MODE="0666", GROUP="morphs", SYMLINK+="streamdeck"
 - sudo udevadm control --reload-rules && sudo udevadm trigger
+
+## misc
+
+- https://www.amazon.com/gp/product/B072BMG9TB
 
 ## Todo
 
@@ -28,6 +37,3 @@
 	- turn off
 	- mute / toggle audio responses
 	- get logs
-- global cooldown stuff
-- Redudency Checks
-	- if stream deck USB became un-plugged / re-plugged

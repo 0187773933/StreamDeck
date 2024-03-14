@@ -18,6 +18,7 @@ id=$(sudo docker run -dit \
 --device=/dev/snd \
 -v $(pwd)/SAVE_FILES:/home/morphs/SAVE_FILES:rw \
 --mount type=bind,source="$(pwd)"/config.yaml,target=/home/morphs/StreamDeckServer/config.yaml \
+--mount type=bind,source="$(pwd)"/asound.conf,target=/etc/asound.conf \
 -p 5953:5953 \
 $APP_NAME config.yaml)
 sudo docker logs -f $id

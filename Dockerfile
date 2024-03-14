@@ -21,7 +21,9 @@ RUN apt-get install libasound2-dev -y
 RUN apt-get install libhidapi-dev -y
 #RUN apt-get install udev -y
 RUN apt-get install pkg-config -y
+RUN apt-get install mpg123 -y
 RUN apt-get install alsa-utils -y
+RUN apt-get install libusb-1.0-0-dev -y
 RUN apt-get install usbutils -y
 
 #RUN amixer sset Master 100%
