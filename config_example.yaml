@@ -96,6 +96,9 @@ stream_deck_ui:
       image: "icons/night-100.png"
       single_click: "/usr/local/bin/night"
       toggle: "night-off"
+    sleep:
+      image: "icons/sleep.png"
+      single_click: "settings-hide"
     rewind-30:
       image: "icons/rewind-30.png"
       single_click: "osascript scripts/rewind_30.applescript"
@@ -175,6 +178,8 @@ stream_deck_ui:
       buttons:
         - index: 0
           id: "settings-brightness-activator"
+        - index: 3
+          id: "sleep"
         - index: 5
           id: "return"
     settings-brightness:

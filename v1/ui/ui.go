@@ -449,7 +449,7 @@ func GetJSON( baseURL string , headers map[string]string , params map[string]str
 		q.Add( key , value )
 	}
 	u.RawQuery = q.Encode()
-	req , err := http.NewRequest("GET", u.String(), nil)
+	req , err := http.NewRequest( "GET" , u.String() , nil )
 	if err != nil { fmt.Println( err ); return }
 	for key , value := range headers {
 		req.Header.Set( key , value )
@@ -498,7 +498,7 @@ func ( ui *StreamDeckUI ) PushOverSend( to string , message string , sound strin
 func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
 	fmt.Println( button.Index , action_type , action )
 
-	if ui.SettingsMode == false {
+	if strings.HasPrefix( action , "settings" ) == false && ui.SettingsMode == false {
 		if button.Options[ "push_over_to" ] != "" {
 			go ui.PushOverSend( button.Options[ "push_over_to" ] , button.Options[ "push_over_message" ] , button.Options[ "push_over_sound" ] )
 		} else if ui.PushOver.GlobalNotify == true {
@@ -577,6 +577,9 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 				ui.Brightness = 100
 				ui.Device.SetBrightness( 100 )
 				ui.Fresh = true
+				ui.SetActivePageID( "default" )
+				ui.Clear()
+				ui.Render()
 			}
 
 			button.Timer = time.AfterFunc( ( time.Millisecond * 500 ) , func() {
@@ -607,6 +610,13 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 						}
 						if button.DoubleClick == "" {
 							fmt.Println( "Double Click not Registered" )
+							if button.SingleClick == "" {
+								fmt.Println( "Single Click not Registered" )
+							} else {
+								fmt.Println( "Rolling Back to Single Click" )
+								ui.ButtonAction( button , "Single Click" , button.SingleClick , button.MP3 )
+								ui.LastPressTime = now
+							}
 							break
 						}
 						ui.ButtonAction( button , "Double Click", button.DoubleClick , button.MP3 )
@@ -620,6 +630,21 @@ func ( ui *StreamDeckUI ) WatchKeys() {
 						}
 						if button.TripleClick == "" {
 							fmt.Println( "Triple Click not Registered" )
+							if button.DoubleClick == "" {
+								fmt.Println( "Double Click not Registered" )
+								if button.SingleClick == "" {
+									fmt.Println( "Single Click not Registered" )
+								} else {
+									fmt.Println( "Rolling Back to Single Click" )
+									ui.ButtonAction( button , "Single Click" , button.SingleClick , button.MP3 )
+									ui.LastPressTime = now
+								}
+								break
+							} else {
+								fmt.Println( "Rolling Back to Double Click" )
+								ui.ButtonAction( button , "Double Click", button.DoubleClick , button.MP3 )
+								ui.LastPressTime = now
+							}
 							break
 						}
 						ui.ButtonAction( button, "Triple Click", button.TripleClick , button.MP3 )

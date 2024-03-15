@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"regexp"
 	"bufio"
+	// "sync"
 	"strings"
 	"strconv"
 	"bytes"
@@ -39,13 +40,13 @@ func SetupCloseHandler() {
 }
 var CONNECTED bool = false
 var WATCHING_SERIAL_NUMBER string = ""
+// var SETUP_MUTEX sync.Mutex = sync.Mutex{}
 // var WATCHING_VENDOR_ID string = ""
 // var WATCHING_PRODUCT_ID string = ""
 func watch_usb_events( restart_chan chan bool ) {
 	known_devices := make( map[string]bool )
 	ctx := gousb.NewContext()
 	defer ctx.Close()
-
 	for {
 		cmd := exec.Command( "lsusb" )
 		var out bytes.Buffer
@@ -156,6 +157,7 @@ func restart_ui( ui *ui_wrapper.StreamDeckUI , config types.ConfigFile ) {
 		ui.Render()
 		ui.SetBrightness(ui.Brightness)
 		go ui.WatchKeys() // Ensure any previous instances are stopped or managed
+		CONNECTED = true
 	} else {
 		fmt.Println("StreamDeck Not Connected")
 	}
@@ -176,7 +178,14 @@ func main() {
 	go watch_usb_events( restart_chan )
 
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
-	restart_ui( ui , config )
+	// restart_ui( ui , config )
+	go func() {
+		time.Sleep( 5 * time.Second )
+		if CONNECTED == false {
+			fmt.Println( "still not connected , retrying" )
+			restart_ui( ui , config )
+		}
+	}()
 
 	s = server.New( config , ui )
 	go func() {
@@ -191,4 +200,3 @@ func main() {
 		}
 	}
 }
-
