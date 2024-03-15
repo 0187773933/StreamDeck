@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	utils "github.com/0187773933/StreamDeck/v1/utils"
 	ui_wrapper "github.com/0187773933/StreamDeck/v1/ui"
+	types "github.com/0187773933/StreamDeck/v1/types"
 	server "github.com/0187773933/StreamDeck/v1/server"
 	bolt_api "github.com/boltdb/bolt"
 	"github.com/google/gousb"
@@ -122,21 +123,61 @@ func watch_usb_events( restart_chan chan bool ) {
 	}
 }
 
+func restart_ui( ui *ui_wrapper.StreamDeckUI , config types.ConfigFile ) {
+	if ui.DB != nil {
+		if err := ui.DB.Close(); err != nil {
+			fmt.Printf( "Error closing database: %v\n" , err )
+		}
+		ui.DB = nil
+	}
+	if ui.Device.Serial != "" {
+		if err := ui.Device.Close(); err != nil {
+			fmt.Printf( "Error closing device: %v\n" , err )
+		}
+	}
+	ui.Connect()
+	if ui.Ready {
+		fmt.Println( "StreamDeck Connecting" )
+		var activePageID string
+		if len(os.Args) > 2 {
+			activePageID = os.Args[2]
+		} else {
+			activePageID = "default"
+		}
+		db, err := bolt_api.Open(config.BoltDBPath, 0600, &bolt_api.Options{Timeout: 3 * time.Second})
+		if err != nil {
+			fmt.Printf("Failed to open database: %v\n", err)
+			return
+		}
+		ui.DB = db
+		ui.SetActivePageID(activePageID)
+		fmt.Println(ui)
+		ui.Clear()
+		ui.Render()
+		ui.SetBrightness(ui.Brightness)
+		go ui.WatchKeys() // Ensure any previous instances are stopped or managed
+	} else {
+		fmt.Println("StreamDeck Not Connected")
+	}
+}
+
 func main() {
 	config_file_path := "./config.yaml"
 	if len( os.Args ) > 1 { config_file_path , _ = filepath.Abs( os.Args[ 1 ] ) }
 	config := utils.ParseConfig( config_file_path )
 	fmt.Printf( "Loaded Config File From : %s\n" , config_file_path )
-	WATCHING_SERIAL_NUMBER = config.StreamDeckUI.(map[interface{}]interface{})["serial"].(string)
+	// WATCHING_SERIAL_NUMBER = config.StreamDeckUI.(map[interface{}]interface{})["serial"].(string)
+	WATCHING_SERIAL_NUMBER = config.StreamDeckUI.Serial
 
+	SetupCloseHandler()
 	// ui_wrapper.PrintDevices()
 
 	restart_chan := make( chan bool )
 	go watch_usb_events( restart_chan )
 
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
+	restart_ui( ui , config )
 
-	SetupCloseHandler()
 	s = server.New( config , ui )
 	go func() {
 		s.Start()
@@ -145,41 +186,8 @@ func main() {
 	for {
 		select {
 		case <-restart_chan:
-			if ui.DB != nil {
-				if err := ui.DB.Close(); err != nil {
-					fmt.Printf( "Error closing database: %v\n" , err )
-				}
-				ui.DB = nil
-			}
-			if ui.Device.Serial != "" {
-				if err := ui.Device.Close(); err != nil {
-					fmt.Printf( "Error closing device: %v\n" , err )
-				}
-			}
-			ui.Connect()
-			if ui.Ready {
-				fmt.Println( "StreamDeck Connecting" )
-				var activePageID string
-				if len(os.Args) > 2 {
-					activePageID = os.Args[2]
-				} else {
-					activePageID = "default"
-				}
-				db, err := bolt_api.Open(config.BoltDBPath, 0600, &bolt_api.Options{Timeout: 3 * time.Second})
-				if err != nil {
-					fmt.Printf("Failed to open database: %v\n", err)
-					continue
-				}
-				ui.DB = db
-				ui.SetActivePageID(activePageID)
-				fmt.Println(ui)
-				ui.Clear()
-				ui.Render()
-				ui.SetBrightness(ui.Brightness)
-				go ui.WatchKeys() // Ensure any previous instances are stopped or managed
-			} else {
-				fmt.Println("StreamDeck Not Connected")
-			}
+			fmt.Println( "Restarting UI" )
+			restart_ui( s.UI , config )
 		}
 	}
 }

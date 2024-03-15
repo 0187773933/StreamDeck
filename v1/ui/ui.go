@@ -11,8 +11,13 @@ import (
 	"sync"
 	// "reflect"
 	"strings"
+	"bytes"
+	"net/url"
+	"encoding/json"
+
 	// streamdeck_wrapper "github.com/muesli/streamdeck"
 	streamdeck_wrapper "github.com/0187773933/StreamDeck/v1/streamdeck"
+	// types "github.com/0187773933/StreamDeck/v1/types"
 	"image"
 	"image/draw"
 	_ "image/jpeg"
@@ -25,6 +30,8 @@ import (
 	mp3 "github.com/hajimehoshi/go-mp3"
 	try "github.com/manucorporat/try"
 	bolt_api "github.com/boltdb/bolt"
+	twilio "github.com/twilio/twilio-go"
+	twilio_api "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
 // https://github.com/muesli/streamdeck/blob/master/streamdeck.go#L112
@@ -72,6 +79,7 @@ type Button struct {
 	DoubleClick string `yaml:"double_click"`
 	TripleClick string `yaml:"triple_click"`
 	Toggle string `yaml:"toggle"`
+	Options map[string]string `yaml:"options"`
 }
 
 type PageButton struct {
@@ -81,6 +89,19 @@ type PageButton struct {
 type StreamDeckUIPage struct {
 	Buttons []PageButton
 }
+type TwilioConfig struct {
+	SID string `yaml:"sid"`
+	Token string `yaml:"token"`
+	From string `yaml:"from"`
+	APIKeySID string `yaml:"api_key_sid"`
+	APIKeySecret string `yaml:"api_key_secret"`
+}
+type PushOverConfig struct {
+	Token string `yaml:"token"`
+	GlobalNotify bool `yaml:"global_notify"`
+	GlobalNotifyTo string `yaml:"global_notify_to"`
+	GlobalNotifySound string `yaml:"global_notify_sound"`
+}
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	Ready bool `yaml:"-"`
@@ -88,6 +109,7 @@ type StreamDeckUI struct {
 	Fresh bool `yaml:"-"`
 	SettingsMode bool `yaml:"-"`
 	PlayBackMutex sync.Mutex `yaml:"-"`
+	TwilioCallMutex sync.Mutex `yaml:"-"`
 	ActivePageID string `yaml:"-"`
 	Sleep bool `yaml:"-"`
 	Serial string `yaml:"serial"`
@@ -99,6 +121,9 @@ type StreamDeckUI struct {
 	LastPressTime time.Time `yaml:"-"`
 	EndpointHostName string `yaml:"endpoint_hostname"`
 	EndpointToken string `yaml:"endpoint_token"`
+	Twilio TwilioConfig `yaml:"twilio"`
+	PushOver PushOverConfig `yaml:"push_over"`
+	TwilioLocked bool `yaml:"-"`
 	Pages map[string]StreamDeckUIPage `yaml:"pages"`
 	Buttons map[string]Button `yaml:"buttons"`
 	LoadedButtonImages map[uint8]string `yaml:"-"`
@@ -368,9 +393,125 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 	}
 }
 
+func ( ui *StreamDeckUI ) TwilioCall( to string , url string ) {
+	ui.TwilioCallMutex.Lock()
+	ui.TwilioLocked = true
+	client := twilio.NewRestClientWithParams( twilio.ClientParams{
+		Username: ui.Twilio.SID ,
+		Password: ui.Twilio.Token ,
+	})
+	params := &twilio_api.CreateCallParams{}
+	params.SetTo( to )
+	params.SetFrom( ui.Twilio.From )
+	params.SetUrl( url )
+	resp , err := client.Api.CreateCall( params )
+	var call_sid string
+	if err != nil {
+		fmt.Println( err.Error() )
+	} else {
+		fmt.Println( "Call Status: " + *resp.Status )
+		fmt.Println( "Call Sid: " + *resp.Sid )
+		fmt.Println( "Call Direction: " + *resp.Direction )
+		call_sid = *resp.Sid
+		fetch_call_params := &twilio_api.FetchCallParams{}
+		answered := false
+		completed := false
+		for i := 0; i < 120; i++ {
+			time.Sleep( 1 * time.Second )
+			call , err := client.Api.FetchCall( call_sid , fetch_call_params )
+			if err != nil {
+				fmt.Println( err.Error() )
+			} else {
+				status := *call.Status
+				fmt.Printf( "Call Status: %s\n" , status )
+				if status == "in-progress" {
+					answered = true
+				} else if status == "completed" {
+					completed = true
+					break
+				}
+			}
+		}
+		fmt.Println( "done waiting for call" , answered , completed )
+	}
+	ui.TwilioLocked = false
+	ui.TwilioCallMutex.Unlock()
+}
+
+func GetJSON( baseURL string , headers map[string]string , params map[string]string ) ( target interface{} ) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	u , err := url.Parse( baseURL )
+	if err != nil { fmt.Println( err ); return }
+	q := u.Query()
+	for key, value := range params {
+		q.Add( key , value )
+	}
+	u.RawQuery = q.Encode()
+	req , err := http.NewRequest("GET", u.String(), nil)
+	if err != nil { fmt.Println( err ); return }
+	for key , value := range headers {
+		req.Header.Set( key , value )
+	}
+	resp , err := client.Do( req )
+	if err != nil { fmt.Println( err ); return }
+	defer resp.Body.Close()
+	body , err := ioutil.ReadAll( resp.Body )
+	if err != nil { fmt.Println( err ); return }
+	json.Unmarshal( body , &target )
+	return
+}
+
+func PostJSON( url string , headers map[string]string , payload interface{} ) ( result interface{} ) {
+	client := &http.Client{}
+	payload_bytes , err := json.Marshal( payload )
+	if err != nil { fmt.Println( err ); return }
+	req , err := http.NewRequest( "POST" , url , bytes.NewBuffer( payload_bytes ) )
+	if err != nil { fmt.Println( err ); return }
+	req.Header.Set( "Content-Type" , "application/json" )
+	for key, value := range headers {
+		req.Header.Set( key , value )
+	}
+	resp , err := client.Do( req )
+	if err != nil { fmt.Println( err ); return }
+	defer resp.Body.Close()
+	body , err := ioutil.ReadAll( resp.Body )
+	if err != nil { fmt.Println( err ); return }
+	json.Unmarshal( body , &result )
+	return
+}
+
+func ( ui *StreamDeckUI ) PushOverSend( to string , message string , sound string ) {
+	headers := map[string]string{
+		"Accept": "application/json, text/plain, */*" ,
+	}
+	params := map[string]string{
+		"token": ui.PushOver.Token ,
+		"user": to ,
+		"message": message ,
+		"sound": sound ,
+	}
+	PostJSON( "https://api.pushover.net/1/messages.json" , headers , params )
+}
+
 func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
 	fmt.Println( button.Index , action_type , action )
-	if action == "settings-brightness-increase" {
+
+	if button.Options[ "push_over_to" ] != "" {
+		go ui.PushOverSend( button.Options[ "push_over_to" ] , button.Options[ "push_over_message" ] , button.Options[ "push_over_sound" ] )
+	} else if ui.PushOver.GlobalNotify == true {
+		message := fmt.Sprintf( "Pressed %s - %s - %s\n" , button.Id , action_type , action )
+		go ui.PushOverSend( ui.PushOver.GlobalNotifyTo , message , ui.PushOver.GlobalNotifySound )
+	}
+
+	if action == "twilio-call" {
+		if ui.TwilioLocked == false {
+			go ui.TwilioCall( button.Options[ "to" ] , button.Options[ "url" ] )
+		} else {
+			fmt.Println( "Already a Twilio Call in Progress , Not Queing Another One" )
+		}
+	} else if action == "settings-brightness-increase" {
 		ui.IncreaseBrightness()
 	} else if action == "settings-brightness-decrease" {
 		ui.DecreaseBrightness()
@@ -400,6 +541,7 @@ func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , act
 		go cmd.Start()
 	}
 }
+
 func ( ui *StreamDeckUI ) WatchKeys() {
 	key_channel , err := ui.Device.ReadKeys()
 	if err != nil {
@@ -529,7 +671,7 @@ func NewStreamDeckUI( file_path string ) ( result *StreamDeckUI ) {
 	return
 }
 
-func NewStreamDeckUIFromInterface( config *interface{} ) ( result *StreamDeckUI ) {
+func NewStreamDeckUIFromInterface( config interface{} ) ( result *StreamDeckUI ) {
 	intermediate , _ := yaml.Marshal( config )
 	error := yaml.Unmarshal( intermediate , &result )
 	result.LoadedButtonImages = make(map[uint8]string)

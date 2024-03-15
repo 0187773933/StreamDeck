@@ -3,6 +3,7 @@ package types
 import (
 	// "time"
 	// streamdeck "github.com/muesli/streamdeck"
+	ui "github.com/0187773933/StreamDeck/v1/ui"
 )
 
 type ConfigFile struct {
@@ -19,5 +20,5 @@ type ConfigFile struct {
 	TimeZone string `yaml:"time_zone"`
 	BoltDBPath string `yaml:"bolt_db_path"`
 	BoltDBEncryptionKey string `yaml:"bolt_db_encryption_key"`
-	StreamDeckUI interface{} `yaml:"stream_deck_ui"`
+	StreamDeckUI ui.StreamDeckUI `yaml:"stream_deck_ui"`
 }
