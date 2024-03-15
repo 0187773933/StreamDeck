@@ -19,6 +19,17 @@ stream_deck_ui:
   global_cooldown_milliseconds: 4000
   endpoint_hostname: "http://localhost:1235"
   endpoint_token: "k=asdf"
+  twilio:
+    sid: "asdf"
+    token: "asdf"
+    from: "+11234567890"
+    api_key_sid: "asdf"
+    api_key_secret: "asdf"
+  push_over:
+    token: "asdf"
+    global_notify: true
+    global_notify_to: "asdf"
+    global_notify_sound: "none"
   buttons:
     spotify:
       image: "icons/spotify.png"
@@ -46,6 +57,9 @@ stream_deck_ui:
       image: "icons/escape-rope.png"
       mp3: "mp3/escape-rope.mp3"
       single_click: "http://localhost:1234/streamdeck/5"
+      options:
+        to: "+11234567890"
+        url: "http://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient"
     stretch:
       image: "icons/1f49a.png"
       mp3: "mp3/I need to stretch.mp3"
