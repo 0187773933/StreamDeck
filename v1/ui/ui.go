@@ -498,11 +498,13 @@ func ( ui *StreamDeckUI ) PushOverSend( to string , message string , sound strin
 func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
 	fmt.Println( button.Index , action_type , action )
 
-	if button.Options[ "push_over_to" ] != "" {
-		go ui.PushOverSend( button.Options[ "push_over_to" ] , button.Options[ "push_over_message" ] , button.Options[ "push_over_sound" ] )
-	} else if ui.PushOver.GlobalNotify == true {
-		message := fmt.Sprintf( "Pressed %s - %s - %s\n" , button.Id , action_type , action )
-		go ui.PushOverSend( ui.PushOver.GlobalNotifyTo , message , ui.PushOver.GlobalNotifySound )
+	if ui.SettingsMode == false {
+		if button.Options[ "push_over_to" ] != "" {
+			go ui.PushOverSend( button.Options[ "push_over_to" ] , button.Options[ "push_over_message" ] , button.Options[ "push_over_sound" ] )
+		} else if ui.PushOver.GlobalNotify == true {
+			message := fmt.Sprintf( "Pressed %s - %s - %s\n" , button.Id , action_type , action )
+			go ui.PushOverSend( ui.PushOver.GlobalNotifyTo , message , ui.PushOver.GlobalNotifySound )
+		}
 	}
 
 	if action == "twilio-call" {
