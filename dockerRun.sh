@@ -13,15 +13,14 @@ sudo docker rm -f $APP_NAME || echo ""
 id=$(sudo docker run -dit \
 --name $APP_NAME \
 --restart='always' \
---network=6105-buttons-1 \
+--network=6105-buttons \
 --privileged \
 --device=/dev/snd \
 -v $(pwd)/SAVE_FILES:/home/morphs/SAVE_FILES:rw \
---mount type=bind,source="$(pwd)"/config.yaml,target=/home/morphs/StreamDeckServer/config.yaml \
+--mount type=bind,source="$(pwd)"/config.yaml,target=/home/morphs/config.yaml \
 --mount type=bind,source="$(pwd)"/asound.conf,target=/etc/asound.conf \
 -p 5953:5953 \
-$APP_NAME config.yaml)
+$APP_NAME /home/morphs/config.yaml)
 sudo docker logs -f $id
-
 
 #--device=/dev/streamdeck \
