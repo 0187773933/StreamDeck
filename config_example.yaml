@@ -16,6 +16,8 @@ stream_deck_ui:
   product_id: "0090"
   icon_size: 80
   brightness: 30
+  x_size: 3
+  y_size: 2
   global_cooldown_milliseconds: 4000
   endpoint_hostname: "http://localhost:1235"
   endpoint_token: "k=asdf"

@@ -14,14 +14,17 @@ import (
 	"bytes"
 	"net/url"
 	"encoding/json"
-
+	"path/filepath"
 	// streamdeck_wrapper "github.com/muesli/streamdeck"
 	streamdeck_wrapper "github.com/0187773933/StreamDeck/v1/streamdeck"
 	// types "github.com/0187773933/StreamDeck/v1/types"
+	// utils "github.com/0187773933/StreamDeck/v1/utils"
 	"image"
 	"image/draw"
-	_ "image/jpeg"
-	_ "image/png"
+	// _ "image/jpeg"
+	// _ "image/png"
+	"image/jpeg"
+	"image/png"
 	resize "github.com/nfnt/resize"
 	ioutil "io/ioutil"
 	yaml "gopkg.in/yaml.v2"
@@ -79,6 +82,7 @@ type Button struct {
 	DoubleClick string `yaml:"double_click"`
 	TripleClick string `yaml:"triple_click"`
 	Toggle string `yaml:"toggle"`
+	ReturnPage string `yaml:"return_page"`
 	Options map[string]string `yaml:"options"`
 }
 
@@ -117,6 +121,8 @@ type StreamDeckUI struct {
 	ProductID string `yaml:"product_id"`
 	IconSize uint `yaml:"icon_size"`
 	Brightness uint8 `yaml:"brightness"`
+	XSize int `yaml:"x_size"`
+	YSize int `yaml:"y_size"`
 	GlobalCooldownMilliseconds int64 `yaml:"global_cooldown_milliseconds"`
 	LastPressTime time.Time `yaml:"-"`
 	EndpointHostName string `yaml:"endpoint_hostname"`
@@ -233,6 +239,18 @@ func ( ui *StreamDeckUI ) GetActivePageID() ( result string ) {
 		result = string( bucket_result )
 		return nil
 	})
+	return
+}
+
+// doesn't persist
+func ( ui *StreamDeckUI ) AddPage( page_id string , page StreamDeckUIPage ) ( result string ) {
+	ui.Pages[ page_id ] = page
+	return
+}
+
+// doesn't persist
+func ( ui *StreamDeckUI ) AddButton( button_id string , button Button ) ( result string ) {
+	ui.Buttons[ button_id ] = button
 	return
 }
 
@@ -542,6 +560,13 @@ func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , act
 		cmd := exec.Command( "bash", "-c" , action )
 		go cmd.Start()
 	}
+
+	if button.ReturnPage != "" {
+		ui.SetActivePageID( button.ReturnPage )
+		ui.Clear()
+		ui.Render()
+	}
+
 }
 
 func ( ui *StreamDeckUI ) WatchKeys() {
@@ -687,6 +712,84 @@ func ( ui *StreamDeckUI ) PlayMP3( file_path string ) {
 	}).Catch( func( e try.E ) {
 		fmt.Println( e )
 	})
+}
+
+// doesn't persist
+func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Button ) {
+
+	fmt.Println( button )
+
+	// image output prep
+	input_file , err := os.Open( file_path )
+	if err != nil { fmt.Println( err ); return }
+	defer input_file.Close()
+	img , format , err := image.Decode( input_file )
+	if err != nil { fmt.Println( err ); return }
+	// Extract the file name stem (without extension) for the output directory
+	// original_dir , original_file_name := filepath.Split( file_path )
+	_ , original_file_name := filepath.Split( file_path )
+	file_stem := strings.TrimSuffix( original_file_name , filepath.Ext( file_path ) )
+	cwd , _ := os.Getwd()
+	output_dir := filepath.Join( cwd , "images" , file_stem )
+	err = os.MkdirAll( output_dir , os.ModePerm );
+	if err != nil { fmt.Println( err ); return }
+
+	// total_images := ( ui.XSize * ui.YSize )
+	// tile_size := ui.IconSize
+	tile_size := 72
+
+	// Calculate the new dimensions
+	new_width := uint( ui.XSize * tile_size )
+	new_height := uint( ui.YSize * tile_size )
+
+	// Resize the image
+	resized_img := resize.Resize( new_width , new_height , img , resize.Lanczos3 )
+
+	var page_buttons []PageButton
+
+	// Iterate over the tiles and save each one in the designated directory
+	for y := 0; y < ui.YSize; y++ {
+		for x := 0; x < ui.XSize; x++ {
+			// Define the rectangle for the current tile
+			rect := image.Rect( x*tile_size , y*tile_size , (x+1)*tile_size , (y+1)*tile_size )
+			tile := image.NewRGBA( image.Rect( 0 , 0 , tile_size , tile_size ) )
+			draw.Draw( tile , tile.Bounds() , resized_img , rect.Min , draw.Src )
+
+			// Construct the file name based on the position in the grid
+			file_name_part := y*ui.XSize+x+1
+			file_name := fmt.Sprintf( "%d.%s" , file_name_part , format )
+			tile_path := filepath.Join( output_dir , file_name )
+
+			btn_id := fmt.Sprintf( "%s-%d" , file_stem , file_name_part )
+			btn := button
+			btn.Image = tile_path
+			fmt.Println( btn )
+			ui.AddButton( btn_id , btn )
+			page_btn := PageButton{
+				Index: uint8( file_name_part - 1 ) ,
+				Id: btn_id ,
+			}
+			page_buttons = append( page_buttons , page_btn )
+
+			// Save the tile using the original format
+			out_file , err := os.Create( tile_path )
+			if err != nil { fmt.Println( err ); return }
+			switch format {
+				case "jpeg":
+					jpeg.Encode( out_file , tile , nil )
+				case "png":
+					png.Encode( out_file , tile )
+				default:
+					fmt.Println( "Unsupported image format:" , format )
+			}
+			out_file.Close()
+		}
+	}
+
+	ui.AddPage( file_stem , StreamDeckUIPage{
+		Buttons: page_buttons ,
+	})
+
 }
 
 func NewStreamDeckUI( file_path string ) ( result *StreamDeckUI ) {

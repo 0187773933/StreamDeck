@@ -2,10 +2,13 @@ package server
 
 import (
 	// "fmt"
+	// "time"
+	filepath "path/filepath"
 	fiber "github.com/gofiber/fiber/v2"
 	strconv "strconv"
 	// types "github.com/0187773933/StreamDeck/v1/types"
 	bolt_api "github.com/boltdb/bolt"
+	ui_wrapper "github.com/0187773933/StreamDeck/v1/ui"
 )
 
 // var ui_html_pages = map[ string ]string {
@@ -160,6 +163,68 @@ func ( s *Server ) RenderPage( context *fiber.Ctx ) ( error ) {
 	})
 }
 
+func ( s *Server ) GetPageAddTiledImage( context *fiber.Ctx ) ( error ) {
+	htmlContent := `
+	<!DOCTYPE html>
+	<html>
+	<head>
+	    <title>Upload Image</title>
+	</head>
+	<body>
+	    <form action="/page/add/tiled" method="post" enctype="multipart/form-data">
+	        <input type="file" name="image" required /><br><br>
+	        <input type="text" name="MP3String" placeholder="MP3 String" /><br><br>
+	        <input type="text" name="SingleClickString" placeholder="Single Click Command" /><br><br>
+	        <input type="text" name="ReturnPageString" placeholder="Return Page" /><br><br>
+	        <input type="submit" value="Upload" />
+	    </form>
+	</body>
+	</html>
+	`
+	context.Set( "Content-Type" , "text/html" )
+	return context.SendString(htmlContent)
+}
+
+func ( s *Server ) PageAddTiledImage( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
+
+	// Parse the multipart form:
+	form, err := context.MultipartForm()
+	if err != nil {
+		return err
+	}
+
+	// Get the first file from the "image" key:
+	files := form.File["image"]
+	if len(files) == 0 {
+		return fiber.ErrBadRequest
+	}
+
+	file := files[0]
+
+	// Save the file to the "images" directory:
+	filename := filepath.Base(file.Filename)
+	targetPath := filepath.Join("./images", filename)
+	if err := context.SaveFile(file, targetPath); err != nil {
+		return err
+	}
+
+	// Process the image:
+	button := ui_wrapper.Button{
+		MP3:         context.FormValue("MP3String"),
+		SingleClick: context.FormValue("SingleClickString"),
+		ReturnPage:  context.FormValue("ReturnPageString"),
+	}
+
+	page_id := s.UI.AddImageAsTiledButton(targetPath, button)
+
+	return context.JSON( fiber.Map{
+		"route": "/page/add/tiled" ,
+		"page_id": page_id ,
+		"result": "success" ,
+	})
+}
+
 func ( s *Server ) SetupRoutes() {
 
 	// admin_route_group := s.FiberApp.Group( "/admin" )
@@ -185,5 +250,6 @@ func ( s *Server ) SetupRoutes() {
 	s.FiberApp.Get( "/wake" , s.Wake )
 	s.FiberApp.Get( "/:button" , s.PressButton )
 	s.FiberApp.Get( "/page/:id" , s.RenderPage )
-
+	s.FiberApp.Get( "/page/add/tiled" , s.GetPageAddTiledImage )
+	s.FiberApp.Post( "/page/add/tiled" , s.PageAddTiledImage )
 }
