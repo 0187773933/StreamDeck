@@ -13,6 +13,7 @@ import (
 	"strings"
 	"bytes"
 	"net/url"
+	slug "github.com/gosimple/slug"
 	"encoding/json"
 	"path/filepath"
 	// streamdeck_wrapper "github.com/muesli/streamdeck"
@@ -715,24 +716,25 @@ func ( ui *StreamDeckUI ) PlayMP3( file_path string ) {
 }
 
 // doesn't persist
-func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Button ) {
+func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Button ) string {
 
 	fmt.Println( button )
 
 	// image output prep
 	input_file , err := os.Open( file_path )
-	if err != nil { fmt.Println( err ); return }
+	if err != nil { fmt.Println( err ); return "" }
 	defer input_file.Close()
 	img , format , err := image.Decode( input_file )
-	if err != nil { fmt.Println( err ); return }
+	if err != nil { fmt.Println( err ); return "" }
 	// Extract the file name stem (without extension) for the output directory
 	// original_dir , original_file_name := filepath.Split( file_path )
 	_ , original_file_name := filepath.Split( file_path )
 	file_stem := strings.TrimSuffix( original_file_name , filepath.Ext( file_path ) )
+	file_stem = slug.Make( file_stem )
 	cwd , _ := os.Getwd()
 	output_dir := filepath.Join( cwd , "images" , file_stem )
 	err = os.MkdirAll( output_dir , os.ModePerm );
-	if err != nil { fmt.Println( err ); return }
+	if err != nil { fmt.Println( err ); return "" }
 
 	// total_images := ( ui.XSize * ui.YSize )
 	// tile_size := ui.IconSize
@@ -746,6 +748,7 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 	resized_img := resize.Resize( new_width , new_height , img , resize.Lanczos3 )
 
 	var page_buttons []PageButton
+
 
 	// Iterate over the tiles and save each one in the designated directory
 	for y := 0; y < ui.YSize; y++ {
@@ -763,7 +766,7 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 			btn_id := fmt.Sprintf( "%s-%d" , file_stem , file_name_part )
 			btn := button
 			btn.Image = tile_path
-			fmt.Println( btn )
+			// fmt.Println( btn )
 			ui.AddButton( btn_id , btn )
 			page_btn := PageButton{
 				Index: uint8( file_name_part - 1 ) ,
@@ -773,7 +776,7 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 
 			// Save the tile using the original format
 			out_file , err := os.Create( tile_path )
-			if err != nil { fmt.Println( err ); return }
+			if err != nil { fmt.Println( err ); return "" }
 			switch format {
 				case "jpeg":
 					jpeg.Encode( out_file , tile , nil )
@@ -789,7 +792,7 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 	ui.AddPage( file_stem , StreamDeckUIPage{
 		Buttons: page_buttons ,
 	})
-
+	return file_stem
 }
 
 func NewStreamDeckUI( file_path string ) ( result *StreamDeckUI ) {
