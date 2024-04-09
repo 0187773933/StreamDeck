@@ -736,13 +736,16 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 	err = os.MkdirAll( output_dir , os.ModePerm );
 	if err != nil { fmt.Println( err ); return "" }
 
-	// total_images := ( ui.XSize * ui.YSize )
-	// tile_size := ui.IconSize
-	tile_size := 72
+	tile_size_uint := ui.IconSize
+	tile_size_int := int( tile_size_uint )
+	x_size_int := ui.XSize
+	y_size_int := ui.YSize
+	x_size_uint := uint( ui.XSize )
+	y_size_uint := uint( ui.YSize )
 
 	// Calculate the new dimensions
-	new_width := uint( ui.XSize * tile_size )
-	new_height := uint( ui.YSize * tile_size )
+	new_width := x_size_uint * tile_size_uint
+	new_height := y_size_uint * tile_size_uint
 
 	// Resize the image
 	resized_img := resize.Resize( new_width , new_height , img , resize.Lanczos3 )
@@ -751,15 +754,94 @@ func ( ui *StreamDeckUI ) AddImageAsTiledButton( file_path string , button Butto
 
 
 	// Iterate over the tiles and save each one in the designated directory
-	for y := 0; y < ui.YSize; y++ {
-		for x := 0; x < ui.XSize; x++ {
+	for y := 0; y < y_size_int; y++ {
+		for x := 0; x < x_size_int; x++ {
 			// Define the rectangle for the current tile
-			rect := image.Rect( x*tile_size , y*tile_size , (x+1)*tile_size , (y+1)*tile_size )
-			tile := image.NewRGBA( image.Rect( 0 , 0 , tile_size , tile_size ) )
+			rect := image.Rect( x*tile_size_int , y*tile_size_int , (x+1)*tile_size_int , (y+1)*tile_size_int )
+			tile := image.NewRGBA( image.Rect( 0 , 0 , tile_size_int , tile_size_int ) )
 			draw.Draw( tile , tile.Bounds() , resized_img , rect.Min , draw.Src )
 
 			// Construct the file name based on the position in the grid
-			file_name_part := y*ui.XSize+x+1
+			file_name_part := y*x_size_int+x+1
+			file_name := fmt.Sprintf( "%d.%s" , file_name_part , format )
+			tile_path := filepath.Join( output_dir , file_name )
+
+			btn_id := fmt.Sprintf( "%s-%d" , file_stem , file_name_part )
+			btn := button
+			btn.Image = tile_path
+			// fmt.Println( btn )
+			ui.AddButton( btn_id , btn )
+			page_btn := PageButton{
+				Index: uint8( file_name_part - 1 ) ,
+				Id: btn_id ,
+			}
+			page_buttons = append( page_buttons , page_btn )
+
+			// Save the tile using the original format
+			out_file , err := os.Create( tile_path )
+			if err != nil { fmt.Println( err ); return "" }
+			switch format {
+				case "jpeg":
+					jpeg.Encode( out_file , tile , nil )
+				case "png":
+					png.Encode( out_file , tile )
+				default:
+					fmt.Println( "Unsupported image format:" , format )
+			}
+			out_file.Close()
+		}
+	}
+
+	ui.AddPage( file_stem , StreamDeckUIPage{
+		Buttons: page_buttons ,
+	})
+	return file_stem
+}
+
+func ( ui *StreamDeckUI ) AddImageAsTiledButtonCustom( file_path string , button Button , x_size_int int , y_size_int int , tile_size_int int ) string {
+
+	fmt.Println( button )
+
+	// image output prep
+	input_file , err := os.Open( file_path )
+	if err != nil { fmt.Println( err ); return "" }
+	defer input_file.Close()
+	img , format , err := image.Decode( input_file )
+	if err != nil { fmt.Println( err ); return "" }
+	// Extract the file name stem (without extension) for the output directory
+	// original_dir , original_file_name := filepath.Split( file_path )
+	_ , original_file_name := filepath.Split( file_path )
+	file_stem := strings.TrimSuffix( original_file_name , filepath.Ext( file_path ) )
+	file_stem = slug.Make( file_stem )
+	cwd , _ := os.Getwd()
+	output_dir := filepath.Join( cwd , "images" , file_stem )
+	err = os.MkdirAll( output_dir , os.ModePerm );
+	if err != nil { fmt.Println( err ); return "" }
+
+	tile_size_uint := uint( tile_size_int )
+	x_size_uint := uint( x_size_int )
+	y_size_uint := uint( y_size_int )
+
+	// Calculate the new dimensions
+	new_width := x_size_uint * tile_size_uint
+	new_height := y_size_uint * tile_size_uint
+
+	// Resize the image
+	resized_img := resize.Resize( new_width , new_height , img , resize.Lanczos3 )
+
+	var page_buttons []PageButton
+
+
+	// Iterate over the tiles and save each one in the designated directory
+	for y := 0; y < y_size_int; y++ {
+		for x := 0; x < x_size_int; x++ {
+			// Define the rectangle for the current tile
+			rect := image.Rect( x*tile_size_int , y*tile_size_int , (x+1)*tile_size_int , (y+1)*tile_size_int )
+			tile := image.NewRGBA( image.Rect( 0 , 0 , tile_size_int , tile_size_int ) )
+			draw.Draw( tile , tile.Bounds() , resized_img , rect.Min , draw.Src )
+
+			// Construct the file name based on the position in the grid
+			file_name_part := y*x_size_int+x+1
 			file_name := fmt.Sprintf( "%d.%s" , file_name_part , format )
 			tile_path := filepath.Join( output_dir , file_name )
 

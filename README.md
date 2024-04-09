@@ -31,7 +31,5 @@
 
 ## Todo
 
-- Twilio Call Support
-- PushOver Notifications
 - routes
 	- get logs

@@ -12,7 +12,7 @@ import (
 	// hid "github.com/dh1tw/hid"
 	types "github.com/0187773933/StreamDeck/v1/types"
 	fiber_cookie "github.com/gofiber/fiber/v2/middleware/encryptcookie"
-	encryption "github.com/0187773933/StreamDeck/v1/encryption"
+	encryption "github.com/0187773933/encryption/v1/encryption"
 )
 
 type Device struct {

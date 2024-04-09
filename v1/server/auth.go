@@ -5,8 +5,13 @@ import (
 	"time"
 	fiber "github.com/gofiber/fiber/v2"
 	bcrypt "golang.org/x/crypto/bcrypt"
-	encryption "github.com/0187773933/StreamDeck/v1/encryption"
+	encryption "github.com/0187773933/encryption/v1/encryption"
 )
+
+func ( s *Server ) ServeLoginPage( context *fiber.Ctx ) ( error ) {
+	context.Set( "Content-Type" , "text/html" )
+	return context.SendFile( "./v1/server/html/login.html" )
+}
 
 func validate_login_credentials( context *fiber.Ctx ) ( result bool ) {
 	result = false
@@ -21,7 +26,7 @@ func validate_login_credentials( context *fiber.Ctx ) ( result bool ) {
 	return
 }
 
-func Logout( context *fiber.Ctx ) ( error ) {
+func ( s *Server ) Logout( context *fiber.Ctx ) ( error ) {
 	context.Cookie( &fiber.Cookie{
 		Name: GlobalConfig.ServerCookieName ,
 		Value: "" ,
@@ -34,7 +39,7 @@ func Logout( context *fiber.Ctx ) ( error ) {
 }
 
 // POST http://localhost:5950/admin/login
-func HandleLogin( context *fiber.Ctx ) ( error ) {
+func ( s *Server ) HandleLogin( context *fiber.Ctx ) ( error ) {
 	valid_login := validate_login_credentials( context )
 	if valid_login == false { return serve_failed_attempt( context ) }
 	context.Cookie(

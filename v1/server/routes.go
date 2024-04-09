@@ -164,6 +164,7 @@ func ( s *Server ) RenderPage( context *fiber.Ctx ) ( error ) {
 }
 
 func ( s *Server ) GetPageAddTiledImage( context *fiber.Ctx ) ( error ) {
+	if validate_admin( context ) == false { return serve_failed_attempt( context ) }
 	htmlContent := `
 	<!DOCTYPE html>
 	<html>
@@ -176,6 +177,9 @@ func ( s *Server ) GetPageAddTiledImage( context *fiber.Ctx ) ( error ) {
 	        <input type="text" name="MP3String" placeholder="MP3 String" /><br><br>
 	        <input type="text" name="SingleClickString" placeholder="Single Click Command" /><br><br>
 	        <input type="text" name="ReturnPageString" placeholder="Return Page" /><br><br>
+	        <input type="text" name="XSize" placeholder="3" /><br><br>
+	        <input type="text" name="YSize" placeholder="2" /><br><br>
+	        <input type="text" name="IconSize" placeholder="72" /><br><br>
 	        <input type="submit" value="Upload" />
 	    </form>
 	</body>
@@ -216,7 +220,15 @@ func ( s *Server ) PageAddTiledImage( context *fiber.Ctx ) ( error ) {
 		ReturnPage:  context.FormValue("ReturnPageString"),
 	}
 
-	page_id := s.UI.AddImageAsTiledButton(targetPath, button)
+	x_size := context.FormValue("XSize")
+	y_size := context.FormValue("YSize")
+	icon_size := context.FormValue("IconSize")
+	x_size_int , _ := strconv.Atoi( x_size )
+	y_size_int , _ := strconv.Atoi( y_size )
+	icon_size_int , _ := strconv.Atoi( icon_size )
+
+	// page_id := s.UI.AddImageAsTiledButton(targetPath, button)
+	page_id := s.UI.AddImageAsTiledButtonCustom( targetPath, button , x_size_int , y_size_int , icon_size_int )
 
 	return context.JSON( fiber.Map{
 		"route": "/page/add/tiled" ,
@@ -239,6 +251,10 @@ func ( s *Server ) SetupRoutes() {
 		ctx.Set( "Content-Type" , "text/html" )
 		return ctx.SendString( "<h1>Stream Deck Server</h1>" )
 	})
+
+	s.FiberApp.Get( "/login" , s.ServeLoginPage )
+	s.FiberApp.Post( "/login" , s.HandleLogin )
+	s.FiberApp.Get( "/logout" , s.Logout )
 
 	s.FiberApp.Get( "/show" , s.Show )
 	s.FiberApp.Get( "/brightness/increase" , s.IncreaseBrightness )

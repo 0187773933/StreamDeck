@@ -160,6 +160,7 @@ func restart_ui( ui *ui_wrapper.StreamDeckUI , config types.ConfigFile ) {
 		ui.SetBrightness(ui.Brightness)
 		go ui.WatchKeys() // Ensure any previous instances are stopped or managed
 		CONNECTED = true
+		fmt.Println( "StreamDeck Connected" )
 	} else {
 		fmt.Println("StreamDeck Not Connected")
 	}
