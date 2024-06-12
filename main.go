@@ -141,24 +141,26 @@ func restart_ui( ui *ui_wrapper.StreamDeckUI , config types.ConfigFile ) {
 		fmt.Println( "StreamDeck Connecting" )
 		if CONNECTED == false {
 			var activePageID string
-			if len(os.Args) > 2 {
-				activePageID = os.Args[2]
+			if len( os.Args ) > 2 {
+				activePageID = os.Args[ 2 ]
 			} else {
 				activePageID = "default"
 			}
-			db, err := bolt_api.Open(config.BoltDBPath, 0600, &bolt_api.Options{Timeout: 3 * time.Second})
+			db, err := bolt_api.Open( config.BoltDBPath , 0600 , &bolt_api.Options{ Timeout: 3 * time.Second } )
 			if err != nil {
-				fmt.Printf("Failed to open database: %v\n", err)
+				fmt.Printf( "Failed to open database: %v\n" , err )
 				return
 			}
 			ui.DB = db
-			ui.SetActivePageID(activePageID)
-			fmt.Println(ui)
+			ui.StoreDB()
+			ui.LoadDB()
+			ui.SetActivePageID( activePageID )
+			fmt.Println( ui )
 		}
 		ui.Clear()
 		ui.Render()
-		ui.SetBrightness(ui.Brightness)
-		go ui.WatchKeys() // Ensure any previous instances are stopped or managed
+		ui.SetBrightness( ui.Brightness )
+		go ui.WatchKeys()
 		CONNECTED = true
 		fmt.Println( "StreamDeck Connected" )
 	} else {
@@ -183,11 +185,11 @@ func main() {
 	ui := ui_wrapper.NewStreamDeckUIFromInterface( &config.StreamDeckUI )
 
 	// testing
-	ui.AddImageAsTiledButton( "./test5/original.jpg" , ui_wrapper.Button{
-		MP3: "./mp3/escape-rope.mp3" ,
-		SingleClick: "echo hola" ,
-		ReturnPage: "default" ,
-	})
+	// ui.AddImageAsTiledButton( "./test5/original.jpg" , ui_wrapper.Button{
+	// 	MP3: "./mp3/escape-rope.mp3" ,
+	// 	SingleClick: "echo hola" ,
+	// 	ReturnPage: "default" ,
+	// })
 
 	// restart_ui( ui , config )
 	go func() {

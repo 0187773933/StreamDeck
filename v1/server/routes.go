@@ -265,6 +265,7 @@ func ( s *Server ) SetupRoutes() {
 	s.FiberApp.Get( "/sleep" , s.Sleep )
 	s.FiberApp.Get( "/wake" , s.Wake )
 	s.FiberApp.Get( "/:button" , s.PressButton )
+	s.FiberApp.Post( "/button/add" , s.ButtonAdd )
 	s.FiberApp.Get( "/page/:id" , s.RenderPage )
 	s.FiberApp.Get( "/page/add/tiled" , s.GetPageAddTiledImage )
 	s.FiberApp.Post( "/page/add/tiled" , s.PageAddTiledImage )

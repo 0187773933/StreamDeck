@@ -70,15 +70,34 @@ func get_json( url string ) ( result string ) {
 	return
 }
 
+func post_json( url string , headers map[string]string , payload interface{} ) ( result interface{} ) {
+	client := &http.Client{}
+	payload_bytes , err := json.Marshal( payload )
+	if err != nil { fmt.Println( err ); return }
+	req , err := http.NewRequest( "POST" , url , bytes.NewBuffer( payload_bytes ) )
+	if err != nil { fmt.Println( err ); return }
+	req.Header.Set( "Content-Type" , "application/json" )
+	for key, value := range headers {
+		req.Header.Set( key , value )
+	}
+	resp , err := client.Do( req )
+	if err != nil { fmt.Println( err ); return }
+	defer resp.Body.Close()
+	body , err := ioutil.ReadAll( resp.Body )
+	if err != nil { fmt.Println( err ); return }
+	json.Unmarshal( body , &result )
+	return
+}
+
 type Button struct {
-	PressCount int `yaml:"-"`
-	LastPressTime time.Time `yaml:"-"`
+	PressCount int `yaml:"press_count"`
+	LastPressTime time.Time `yaml:"last_press_time"`
 	// Toggled bool `yamm:"toggled"`
 	Timer *time.Timer `yaml:"-"`
 	Index uint8 `yaml:"index"`
 	Image string `yaml:"image"`
 	MP3 string `yaml:"mp3"`
-	Id string `yaml:"_"`
+	Id string `yaml:"id"`
 	SingleClick string `yaml:"single_click"`
 	DoubleClick string `yaml:"double_click"`
 	TripleClick string `yaml:"triple_click"`
@@ -91,9 +110,11 @@ type PageButton struct {
 	Index uint8 `yaml:"index"`
 	Id string `yaml:"id"`
 }
+
 type StreamDeckUIPage struct {
 	Buttons []PageButton
 }
+
 type TwilioConfig struct {
 	SID string `yaml:"sid"`
 	Token string `yaml:"token"`
@@ -101,12 +122,14 @@ type TwilioConfig struct {
 	APIKeySID string `yaml:"api_key_sid"`
 	APIKeySecret string `yaml:"api_key_secret"`
 }
+
 type PushOverConfig struct {
 	Token string `yaml:"token"`
 	GlobalNotify bool `yaml:"global_notify"`
 	GlobalNotifyTo string `yaml:"global_notify_to"`
 	GlobalNotifySound string `yaml:"global_notify_sound"`
 }
+
 type StreamDeckUI struct {
 	Device streamdeck_wrapper.Device `yaml:"-"`
 	Ready bool `yaml:"-"`
@@ -162,6 +185,21 @@ func ( ui *StreamDeckUI ) Connect() {
 	}
 	ui.Ready = true
 	// ui.Device.Clear()
+}
+
+func ( ui *StreamDeckUI ) LoadDB() {
+	fmt.Println( "LoadDB" )
+}
+
+func ( ui *StreamDeckUI ) StoreDB() {
+	fmt.Println( "StoreDB" )
+	// Buttons map[string]Button `yaml:"buttons"`
+	// LoadedButtonImages map[uint8]string `yaml:"-"`
+	for _ , button := range ui.Buttons {
+		btn := ui.Buttons[ button.Id ]
+		fmt.Println( btn )
+		// image_data := ui.get_image_data( btn.Image )
+	}
 }
 
 func GetDevices() ( result []streamdeck_wrapper.Device ) {
@@ -331,6 +369,7 @@ func ( ui *StreamDeckUI ) RenderSoft() {
 	}
 	for _ , button := range ui.Pages[ page_id ].Buttons {
 		btn := ui.Buttons[ button.Id ]
+		// ????
 		if ui.LoadedButtonImages[ button.Index ] != btn.Image {
 			ui.LoadedButtonImages[ button.Index ] = btn.Image
 		} else {
@@ -379,7 +418,13 @@ func ( ui *StreamDeckUI ) SingleClickNumber( button_num uint8 ) {
 				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 			}
 		}
-		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
+		x_url := ""
+		if strings.Contains( button.SingleClick , "?" ) {
+			x_url = fmt.Sprintf( "%s&%s" , button.SingleClick , ui.EndpointToken )
+		} else {
+			x_url = fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken )
+		}
+		get_json( x_url )
 	} else {
 		fmt.Printf( "exec-ing: %s\n" , button.SingleClick )
 		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
@@ -404,7 +449,13 @@ func ( ui *StreamDeckUI ) SingleClickId( button_id string ) {
 				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , button.MP3 ) )
 			}
 		}
-		get_json( fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken ) )
+		x_url := ""
+		if strings.Contains( button.SingleClick , "?" ) {
+			x_url = fmt.Sprintf( "%s&%s" , button.SingleClick , ui.EndpointToken )
+		} else {
+			x_url = fmt.Sprintf( "%s?%s" , button.SingleClick , ui.EndpointToken )
+		}
+		get_json( x_url )
 	} else {
 		fmt.Printf( "exec-ing: %s\n" , button.SingleClick )
 		cmd := exec.Command( "bash" , "-c" , button.SingleClick )
@@ -457,49 +508,6 @@ func ( ui *StreamDeckUI ) TwilioCall( to string , url string ) {
 	ui.TwilioCallMutex.Unlock()
 }
 
-func GetJSON( baseURL string , headers map[string]string , params map[string]string ) ( target interface{} ) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-	u , err := url.Parse( baseURL )
-	if err != nil { fmt.Println( err ); return }
-	q := u.Query()
-	for key, value := range params {
-		q.Add( key , value )
-	}
-	u.RawQuery = q.Encode()
-	req , err := http.NewRequest( "GET" , u.String() , nil )
-	if err != nil { fmt.Println( err ); return }
-	for key , value := range headers {
-		req.Header.Set( key , value )
-	}
-	resp , err := client.Do( req )
-	if err != nil { fmt.Println( err ); return }
-	defer resp.Body.Close()
-	body , err := ioutil.ReadAll( resp.Body )
-	if err != nil { fmt.Println( err ); return }
-	json.Unmarshal( body , &target )
-	return
-}
-
-func PostJSON( url string , headers map[string]string , payload interface{} ) ( result interface{} ) {
-	client := &http.Client{}
-	payload_bytes , err := json.Marshal( payload )
-	if err != nil { fmt.Println( err ); return }
-	req , err := http.NewRequest( "POST" , url , bytes.NewBuffer( payload_bytes ) )
-	if err != nil { fmt.Println( err ); return }
-	req.Header.Set( "Content-Type" , "application/json" )
-	for key, value := range headers {
-		req.Header.Set( key , value )
-	}
-	resp , err := client.Do( req )
-	if err != nil { fmt.Println( err ); return }
-	defer resp.Body.Close()
-	body , err := ioutil.ReadAll( resp.Body )
-	if err != nil { fmt.Println( err ); return }
-	json.Unmarshal( body , &result )
-	return
-}
 
 func ( ui *StreamDeckUI ) PushOverSend( to string , message string , sound string ) {
 	headers := map[string]string{
@@ -511,7 +519,7 @@ func ( ui *StreamDeckUI ) PushOverSend( to string , message string , sound strin
 		"message": message ,
 		"sound": sound ,
 	}
-	PostJSON( "https://api.pushover.net/1/messages.json" , headers , params )
+	post_json( "https://api.pushover.net/1/messages.json" , headers , params )
 }
 
 func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , action string , mp3_path string ) {
@@ -555,19 +563,23 @@ func ( ui *StreamDeckUI ) ButtonAction( button Button , action_type string , act
 				go ui.PlayMP3( fmt.Sprintf( "%s/%s" , CWD , mp3_path ) )
 			}
 		}
-		go get_json( fmt.Sprintf( "%s?%s" , action , ui.EndpointToken ) )
+		x_url := ""
+		if strings.Contains( button.SingleClick , "?" ) {
+			x_url = fmt.Sprintf( "%s&%s" , action , ui.EndpointToken )
+		} else {
+			x_url = fmt.Sprintf( "%s?%s" , action , ui.EndpointToken )
+		}
+		go get_json( x_url )
 	} else {
 		fmt.Printf( "exec-ing: %s\n", action )
 		cmd := exec.Command( "bash", "-c" , action )
 		go cmd.Start()
 	}
-
 	if button.ReturnPage != "" {
 		ui.SetActivePageID( button.ReturnPage )
 		ui.Clear()
 		ui.Render()
 	}
-
 }
 
 func ( ui *StreamDeckUI ) WatchKeys() {
